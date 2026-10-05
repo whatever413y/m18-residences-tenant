@@ -37,7 +37,12 @@ submit). Old links of the form `…/#/NAME` still work.
 ## Checks and deploys
 
 - `flutter analyze` must report no issues; `dart format lib` (150 columns).
-- `test.yml`: pushes to `development` and PRs to `main` → format, analyze, release build.
+- `test.yml`: PRs to `main` → format, analyze, release build.
+- `preview.yml`: the same checks, then a **preview** on this app's Worker, built against the development API
+  (`development-api`, synthetic data) and behind Cloudflare Access (log in with an allowed email); production is
+  untouched:
+  - pushes to `development` → https://development-my.m18-residences.workers.dev
+  - pull requests from this repo → `https://pr-<number>-my.m18-residences.workers.dev`, linked in a PR comment
 - `deploy.yml`: pushes to `main` → the same checks → the browser e2e suite (`shared-e2e`) with this commit and
   the server and admin app as they are live → build with the repo variable `API_URL` → `wrangler deploy` → moves
   the `live` tag.

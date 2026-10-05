@@ -7,5 +7,7 @@
     "directory": "./build/web",
     // Unknown paths serve index.html (the app routes with URL fragments anyway).
     "not_found_handling": "single-page-application"
-  }
+  },
+  // Preview links (development-<name>, pr-N-<name>) for preview.yml; Cloudflare Access protects them.
+  "preview_urls": true
 }

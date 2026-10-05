@@ -1,0 +1,35 @@
+# Previews of this app on its Worker "my" (production untouched), built against the development API and behind
+# Cloudflare Access (log in with an allowed email):
+# - pushes to development → https://development-my.m18-residences.workers.dev
+# - pull requests from this repo → https://pr-<number>-my.m18-residences.workers.dev, linked in a PR comment
+name: Preview
+
+on:
+  push:
+    branches: [development]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # Fork PRs get no secrets, so they get no preview either.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    uses: whatever413y/.github/.github/workflows/flutter-web-app-check.yml@v1
+
+  preview:
+    needs: check
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: whatever413y/.github/.github/workflows/workers-preview-web.yml@development
+    # Cross-repo reusable workflows only see the caller's (environment) secrets when they are passed on.
+    secrets: inherit
+    with:
+      alias: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'development' }}
+      worker: my
+      subdomain: m18-residences
+      pr-number: ${{ github.event.pull_request.number || 0 }}

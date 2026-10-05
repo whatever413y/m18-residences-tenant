@@ -1,8 +1,7 @@
+# Pull requests into main (pushes to development and other PRs are checked by preview.yml).
 name: test
 
 on:
-  push:
-    branches: [development]
   pull_request:
     branches: [main]
 
