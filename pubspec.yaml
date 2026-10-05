@@ -38,7 +38,7 @@ dependencies:
     git:
       url: https://github.com/whatever413y/shared-packages.git
       path: packages/m18_residences_shared
-      ref: m18_residences_shared-v0.3.0
+      ref: m18_residences_shared-v0.4.0
   fl_chart: ^1.0.0
   # "Remember me" keeps the account ID in the browser's storage (the version m18_residences_shared uses).
   shared_preferences: ^2.5.3
