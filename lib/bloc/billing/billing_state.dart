@@ -20,14 +20,18 @@ class BillingsLoaded extends BillingState {
   List<Object?> get props => [bills];
 }
 
-/// The tenant's latest bill; `null` when there is none yet.
+/// The tenant's latest bill; `null` when there is none yet. While a payment image is uploaded [uploading] is set;
+/// afterwards [uploaded] (it worked) or [uploadError] says how it went.
 class BillingLoaded extends BillingState {
   final Bill? bill;
+  final bool uploading;
+  final bool uploaded;
+  final String? uploadError;
 
-  BillingLoaded(this.bill);
+  BillingLoaded(this.bill, {this.uploading = false, this.uploaded = false, this.uploadError});
 
   @override
-  List<Object?> get props => [bill];
+  List<Object?> get props => [bill, uploading, uploaded, uploadError];
 }
 
 class BillingError extends BillingState {

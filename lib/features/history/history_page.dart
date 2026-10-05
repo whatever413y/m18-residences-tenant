@@ -207,21 +207,30 @@ class HistoryPageState extends State<HistoryPage> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        bill.paid ? "Paid" : "Unpaid",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: bill.paid ? Colors.green : Colors.red),
-                      ),
-                      if (bill.hasReceipt) ...[
-                        const SizedBox(height: 8),
-                        ReceiptLink(tenantName: tenant.name, receiptUrl: bill.receiptUrl, fetchSignedFile: authBloc.authApi.signedReceiptUrl),
-                      ],
-                    ],
-                  ),
+                  BillStatusChip(bill.status),
                 ],
               ),
+              if (bill.hasPayment || bill.hasReceipt) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    BillFileButton(
+                      kind: BillFileKind.payment,
+                      tenantName: tenant.name,
+                      fileUrl: bill.paymentUrl,
+                      fetchSignedFile: authBloc.authApi.signedTenantPaymentUrl,
+                    ),
+                    BillFileButton(
+                      kind: BillFileKind.receipt,
+                      tenantName: tenant.name,
+                      fileUrl: bill.receiptUrl,
+                      fetchSignedFile: authBloc.authApi.signedReceiptUrl,
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 12),
               const Divider(thickness: 1.2),
               const SizedBox(height: 12),

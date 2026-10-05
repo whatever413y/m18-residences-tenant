@@ -67,14 +67,14 @@ Widget buildBillCardWidget(Bill bill, BuildContext context, {String? totalSemant
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Posting Date: ${DateFormat.yMMMMd().format(bill.createdAt)}",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+              Flexible(
+                child: Text(
+                  "Posting Date: ${DateFormat.yMMMMd().format(bill.createdAt)}",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                ),
               ),
-              Text(
-                bill.paid ? "Paid" : "Unpaid",
-                style: TextStyle(fontSize: 14, color: bill.paid ? Colors.green : Colors.red, fontWeight: FontWeight.w600),
-              ),
+              const SizedBox(width: 8),
+              BillStatusChip(bill.status),
             ],
           ),
           Divider(),

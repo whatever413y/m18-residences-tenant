@@ -10,6 +10,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   BillingBloc({required this.billApi}) : super(BillingInitial()) {
     on<FetchBillingsByTenantId>(_onFetchBillingsByTenantId);
     on<FetchBillingByTenantId>(_onFetchBillingByTenantId);
+    on<UploadPayment>(_onUploadPayment);
   }
 
   Future<void> _onFetchBillingsByTenantId(FetchBillingsByTenantId event, Emitter<BillingState> emit) async {
@@ -34,6 +35,21 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     }
 
     emit(BillingLoaded(bill));
+  }
+
+  /// The bill stays on screen during the upload; the server's answer is the updated bill (no refetch).
+  Future<void> _onUploadPayment(UploadPayment event, Emitter<BillingState> emit) async {
+    final payment = event.payment;
+    emit(BillingLoaded(event.bill, uploading: true));
+    try {
+      final updated = await billApi.uploadPayment(event.bill.id, bytes: payment.bytes, filename: payment.filename, contentType: payment.contentType);
+      emit(BillingLoaded(updated, uploaded: true));
+    } catch (e) {
+      final message = e is ApiException && e.statusCode == 409
+          ? 'This bill is already paid. Refresh to see the receipt.'
+          : _failureMessage('The payment upload failed', e);
+      emit(BillingLoaded(event.bill, uploadError: message));
+    }
   }
 
   /// Load failures are shown to the user: the HTTP status and server message for API errors, the error itself otherwise (e.g. network).

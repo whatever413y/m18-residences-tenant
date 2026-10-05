@@ -7,6 +7,7 @@ import 'package:m18_residences/bloc/auth/auth_state.dart';
 import 'package:m18_residences/bloc/billing/billing_bloc.dart';
 import 'package:m18_residences/bloc/billing/billing_event.dart';
 import 'package:m18_residences/bloc/billing/billing_state.dart';
+import 'package:m18_residences/features/billing/payment_section.dart';
 import 'package:m18_residences/utils/widgets/widgets.dart';
 import 'package:m18_residences_shared/m18_residences_shared.dart';
 
@@ -79,7 +80,21 @@ class BillingPageState extends State<BillingPage> {
                             width: contentWidth,
                             padding: EdgeInsets.symmetric(horizontal: isMobile ? 12.0 : 24.0, vertical: 16.0),
                             constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                            child: _buildBillCard(bill!, isMobile),
+                            child: Column(
+                              children: [
+                                _buildBillCard(bill!, isMobile),
+                                const SizedBox(height: 16),
+                                PaymentSection(
+                                  bill: bill!,
+                                  tenantName: tenant.name,
+                                  authApi: authBloc.authApi,
+                                  uploading: billingState.uploading,
+                                  uploaded: billingState.uploaded,
+                                  uploadError: billingState.uploadError,
+                                  onUpload: (payment) => billingBloc.add(UploadPayment(bill!, payment)),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -116,22 +131,7 @@ class BillingPageState extends State<BillingPage> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      bill.paid ? "Paid" : "Unpaid",
-                      style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w600, color: bill.paid ? Colors.green : Colors.red),
-                    ),
-                    if (bill.hasReceipt) ...[
-                      const SizedBox(height: 8),
-                      Semantics(
-                        identifier: 'tenant-receipt-link',
-                        child: ReceiptLink(tenantName: tenant.name, receiptUrl: bill.receiptUrl, fetchSignedFile: authBloc.authApi.signedReceiptUrl),
-                      ),
-                    ],
-                  ],
-                ),
+                Semantics(container: true, identifier: 'tenant-bill-status', child: BillStatusChip(bill.status)),
               ],
             ),
 

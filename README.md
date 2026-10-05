@@ -8,7 +8,13 @@ A tenant's link is `https://my.m18-residences.workers.dev/NAME`: it prefills the
 submit). Old links of the form `…/#/NAME` still work. "Remember me" (on by default) keeps the account ID in the
 browser's storage to prefill the next visit; a link's name wins over it. Enter submits.
 
-Receipts and payment QR codes open in a dialog with Save: WebP receipts are saved as JPEG, the QR codes as PNG.
+The latest bill shows its status: **Unpaid**, **For verification** (the tenant uploaded a payment image) or **Paid**
+(the owner attached a receipt). Until it is paid, the tenant can upload a screenshot or photo of their payment
+(optional; "Upload payment" / "Change payment"), converted in the browser like the admin's receipts
+(`prepareReceipt` from the shared package: ≤ 1600 px WebP, HEIC included, PDFs as-is).
+
+Receipts, payment images and payment QR codes open in a dialog with Save (View buttons, never links or file names):
+WebP files are saved as JPEG, the QR codes as PNG.
 Every text can be selected and copied.
 
 ## Getting started
@@ -51,4 +57,5 @@ Every text can be selected and copied.
   the `live` tag.
 
 Browser e2e builds use `--dart-define=E2E=true`, which keeps Flutter's accessibility tree on; tests find widgets by
-semantics ids such as `tenant-account-id`, `tenant-login-submit`, `tenant-latest-total` and `tenant-receipt-link`.
+semantics ids such as `tenant-account-id`, `tenant-login-submit`, `tenant-latest-total`, `tenant-bill-status`,
+`tenant-upload-payment`, `tenant-payment-link` and `tenant-receipt-link`.
