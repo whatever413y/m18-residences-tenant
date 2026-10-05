@@ -175,7 +175,7 @@ class HistoryPageState extends State<HistoryPage> {
               padding: const EdgeInsets.symmetric(vertical: 6.0),
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
-                onTap: () => showDialog(context: context, builder: (_) => _buildBillDialog(context, bill)),
+                onTap: () => showSelectableDialog(context: context, builder: (_) => _buildBillDialog(context, bill)),
                 child: buildBillCardWidget(bill, context),
               ),
             ),
