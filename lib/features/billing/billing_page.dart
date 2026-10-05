@@ -50,7 +50,7 @@ class BillingPageState extends State<BillingPage> {
         body: LayoutBuilder(
           builder: (context, constraints) {
             final maxWidth = constraints.maxWidth;
-            final isMobile = maxWidth < 600;
+            final isMobile = WindowSize.fromWidth(maxWidth).isCompact;
             final contentWidth = isMobile ? maxWidth : 600.0;
 
             return BlocBuilder<AuthBloc, AuthState>(
@@ -68,9 +68,8 @@ class BillingPageState extends State<BillingPage> {
                     } else if (billingState is BillingLoaded) {
                       bill = billingState.bill;
                       if (bill == null) {
-                        return ErrorView(
-                          message: "No billing data available for this tenant.",
-                          onRetry: () => billingBloc.add(FetchBillingByTenantId(tenant.id)),
+                        return const Center(
+                          child: Padding(padding: EdgeInsets.all(24), child: Text('No bill yet. It shows here once it is posted.')),
                         );
                       }
 
@@ -110,10 +109,13 @@ class BillingPageState extends State<BillingPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Latest Bill",
-                  style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                Flexible(
+                  child: Text(
+                    "Latest Bill",
+                    style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                  ),
                 ),
+                const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [

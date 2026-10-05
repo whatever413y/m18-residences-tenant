@@ -40,6 +40,8 @@ dependencies:
       path: packages/m18_residences_shared
       ref: m18_residences_shared-v0.3.0
   fl_chart: ^1.0.0
+  # "Remember me" keeps the account ID in the browser's storage (the version m18_residences_shared uses).
+  shared_preferences: ^2.5.3
   intl: ^0.20.2
   collection: ^1.18.0
   flutter_bloc: ^9.1.1

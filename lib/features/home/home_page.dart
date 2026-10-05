@@ -63,7 +63,7 @@ class HomePageState extends State<HomePage> {
         body: LayoutBuilder(
           builder: (context, constraints) {
             final maxWidth = constraints.maxWidth;
-            final isMobile = maxWidth < 600;
+            final isMobile = WindowSize.fromWidth(maxWidth).isCompact;
 
             final contentWidth = isMobile ? maxWidth : 600.0;
 
@@ -80,13 +80,6 @@ class HomePageState extends State<HomePage> {
                       return ErrorView(message: billingState.message, onRetry: () => billingBloc.add(FetchBillingByTenantId(tenant.id)));
                     } else if (billingState is BillingLoaded) {
                       bill = billingState.bill;
-                      if (bill == null) {
-                        return ErrorView(
-                          message: "No billing data available for this tenant.",
-                          onRetry: () => billingBloc.add(FetchBillingByTenantId(tenant.id)),
-                        );
-                      }
-
                       return Stack(
                         children: [
                           Container(
@@ -128,10 +121,18 @@ class HomePageState extends State<HomePage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          GestureDetector(
-            onTap: () => _navigateToPage(BillingPage()),
-            child: buildBillCardWidget(bill!, context, totalSemanticsId: 'tenant-latest-total'),
-          ),
+          if (bill case final bill?)
+            GestureDetector(
+              onTap: () => _navigateToPage(BillingPage()),
+              child: buildBillCardWidget(bill, context, totalSemanticsId: 'tenant-latest-total'),
+            )
+          else
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: Text('No bill yet. It shows here once it is posted.', textAlign: TextAlign.center)),
+              ),
+            ),
           SizedBox(height: isMobile ? 16 : 20),
           _buildSquareButton("Billing History", Icons.history, HistoryPage(), isMobile: isMobile),
           SizedBox(height: isMobile ? 16 : 20),

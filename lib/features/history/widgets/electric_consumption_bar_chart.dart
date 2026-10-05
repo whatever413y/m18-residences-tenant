@@ -13,15 +13,20 @@ class ConsumptionPoint {
 
 class ElectricConsumptionBarChart extends StatelessWidget {
   final List<ConsumptionPoint> completeReadings;
+
+  /// The top of the y axis; above zero (a year without consumption still gets an axis).
   final int yMax;
   final double barWidth;
 
-  const ElectricConsumptionBarChart({super.key, required this.completeReadings, required this.yMax, required this.barWidth});
+  /// Smaller axis labels, so twelve months fit on a phone.
+  final bool compact;
+
+  const ElectricConsumptionBarChart({super.key, required this.completeReadings, required this.yMax, required this.barWidth, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
     final reversedReadings = completeReadings.reversed.toList();
-    final yMax = reversedReadings.map((r) => r.consumption).reduce((a, b) => a > b ? a : b);
+    final labelStyle = TextStyle(fontSize: compact ? 10 : 14);
 
     return BarChart(
       BarChartData(
@@ -48,11 +53,14 @@ class ElectricConsumptionBarChart extends StatelessWidget {
           topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
           rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
           leftTitles: AxisTitles(
+            axisNameWidget: Text('kWh', style: labelStyle),
+            axisNameSize: compact ? 14 : 18,
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 60,
-              interval: yMax / 4,
-              getTitlesWidget: (value, meta) => Text("${value.toInt()} kWh"),
+              reservedSize: compact ? 30 : 40,
+              // yMax is a multiple of 50, so fifths are round numbers.
+              interval: yMax / 5,
+              getTitlesWidget: (value, meta) => Text("${value.toInt()}", style: labelStyle),
             ),
           ),
           bottomTitles: AxisTitles(
@@ -62,7 +70,7 @@ class ElectricConsumptionBarChart extends StatelessWidget {
                 int index = value.toInt();
                 if (index >= 0 && index < reversedReadings.length) {
                   DateTime date = reversedReadings[index].date;
-                  return Text(DateFormat("MMM").format(date).toUpperCase());
+                  return Text(DateFormat("MMM").format(date).toUpperCase(), style: labelStyle);
                 }
                 return Text('');
               },
@@ -78,12 +86,9 @@ class ElectricConsumptionBarChart extends StatelessWidget {
             fitInsideVertically: true,
             tooltipPadding: EdgeInsets.all(4),
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
-              return BarTooltipItem("${rod.toY.toString()} kWh", TextStyle(color: Colors.white, fontWeight: FontWeight.bold));
+              return BarTooltipItem("${rod.toY.toInt()} kWh", TextStyle(color: Colors.white, fontWeight: FontWeight.bold));
             },
           ),
-          touchCallback: (FlTouchEvent event, barTouchResponse) {
-            if (event is FlTapUpEvent && barTouchResponse != null) {}
-          },
         ),
       ),
     );

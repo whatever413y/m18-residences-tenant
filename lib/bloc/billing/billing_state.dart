@@ -10,6 +10,7 @@ class BillingInitial extends BillingState {}
 
 class BillingLoading extends BillingState {}
 
+/// The tenant's bills, newest first; empty when there are none yet.
 class BillingsLoaded extends BillingState {
   final List<Bill> bills;
 
@@ -19,8 +20,9 @@ class BillingsLoaded extends BillingState {
   List<Object?> get props => [bills];
 }
 
+/// The tenant's latest bill; `null` when there is none yet.
 class BillingLoaded extends BillingState {
-  final Bill bill;
+  final Bill? bill;
 
   BillingLoaded(this.bill);
 

@@ -8,6 +8,6 @@
     // Unknown paths serve index.html (the app routes with URL fragments anyway).
     "not_found_handling": "single-page-application"
   },
-  // Preview links (development-<name>, pr-N-<name>) for preview.yml; Cloudflare Access protects them.
+  // Preview links (development-<name>, pr-N-<name>) for preview.yml; open (Cloudflare Access covers only the production admin).
   "preview_urls": true
 }

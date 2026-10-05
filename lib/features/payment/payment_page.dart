@@ -39,12 +39,36 @@ class PaymentPageState extends State<PaymentPage> {
               return ErrorView(message: authState.message);
             }
 
-            return Center(
-              child: Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                alignment: WrapAlignment.center,
-                children: paymentMethods.map((method) => _buildPaymentCard(context, method["name"]!, method["icon"]!)).toList(),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: ResponsiveCenter(
+                maxWidth: 960,
+                child: Column(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        'Tap a payment method to see its QR code. Save it to pay from your banking or wallet app.',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        // One card per row on phones, side by side on wider screens.
+                        final cardWidth = constraints.maxWidth < WindowSize.mediumMin ? constraints.maxWidth : 280.0;
+                        return Wrap(
+                          spacing: 16,
+                          runSpacing: 16,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            for (final method in paymentMethods)
+                              SizedBox(width: cardWidth, child: _buildPaymentCard(context, method["name"]!, method["icon"]!)),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -54,18 +78,24 @@ class PaymentPageState extends State<PaymentPage> {
   }
 
   Widget _buildPaymentCard(BuildContext context, String name, String iconPath) {
-    return InkWell(
-      onTap: () => SignedImageDialog.show(context, fetchFile: () => authBloc.authApi.signedPaymentUrl(name.toLowerCase()), subject: 'image'),
-      borderRadius: BorderRadius.circular(12),
+    final id = name.toLowerCase();
+    return Semantics(
+      container: true,
+      identifier: 'tenant-payment-$id',
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 3,
-        child: SizedBox(
-          width: 250,
-          height: 100,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(iconPath, fit: BoxFit.cover),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => SignedImageDialog.show(
+            context,
+            fetchFile: () => authBloc.authApi.signedPaymentUrl(id),
+            subject: '$name QR code',
+            saveName: 'm18-$id-qr',
+          ),
+          child: AspectRatio(
+            aspectRatio: 2.5,
+            child: Image.asset(iconPath, fit: BoxFit.cover, semanticLabel: name),
           ),
         ),
       ),

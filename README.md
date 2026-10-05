@@ -5,7 +5,11 @@ The tenant page of M18 Residences (https://my.m18-residences.workers.dev): a ten
 how to pay. Flutter web, hosted as a static-assets Cloudflare Worker (`my`).
 
 A tenant's link is `https://my.m18-residences.workers.dev/NAME`: it prefills the account ID (uppercased on
-submit). Old links of the form `…/#/NAME` still work.
+submit). Old links of the form `…/#/NAME` still work. "Remember me" (on by default) keeps the account ID in the
+browser's storage to prefill the next visit; a link's name wins over it. Enter submits.
+
+Receipts and payment QR codes open in a dialog with Save: WebP receipts are saved as JPEG, the QR codes as PNG.
+Every text can be selected and copied.
 
 ## Getting started
 

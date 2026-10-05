@@ -1,5 +1,5 @@
-# Previews of this app on its Worker "my" (production untouched), built against the development API and behind
-# Cloudflare Access (log in with an allowed email):
+# Previews of this app on its Worker "my" (production untouched), built against the development API. They are
+# open (no Cloudflare Access; only the production admin is behind Access). main = production, development = preview:
 # - pushes to development → https://development-my.m18-residences.workers.dev
 # - pull requests from this repo → https://pr-<number>-my.m18-residences.workers.dev, linked in a PR comment
 name: Preview

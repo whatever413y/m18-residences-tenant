@@ -14,7 +14,6 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
 
   Future<void> _onFetchBillingsByTenantId(FetchBillingsByTenantId event, Emitter<BillingState> emit) async {
     emit(BillingLoading());
-    await Future.delayed(const Duration(seconds: 1));
     final List<Bill> bills;
     try {
       bills = await billApi.listForTenant(event.tenantId);
@@ -22,16 +21,11 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       return emit(BillingError(_failureMessage('Failed to load bills', e)));
     }
 
-    if (bills.isEmpty) {
-      emit(BillingError('No bills found for tenant.'));
-    } else {
-      emit(BillingsLoaded(bills));
-    }
+    emit(BillingsLoaded(bills));
   }
 
   Future<void> _onFetchBillingByTenantId(FetchBillingByTenantId event, Emitter<BillingState> emit) async {
     emit(BillingLoading());
-    await Future.delayed(const Duration(seconds: 1));
     final Bill? bill;
     try {
       bill = await billApi.latestForTenant(event.tenantId);
@@ -39,11 +33,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       return emit(BillingError(_failureMessage('Failed to load bill', e)));
     }
 
-    if (bill == null) {
-      emit(BillingError('Bill not found.'));
-    } else {
-      emit(BillingLoaded(bill));
-    }
+    emit(BillingLoaded(bill));
   }
 
   /// Load failures are shown to the user: the HTTP status and server message for API errors, the error itself otherwise (e.g. network).

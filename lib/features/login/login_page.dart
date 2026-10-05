@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:m18_residences/bloc/auth/auth_bloc.dart';
 import 'package:m18_residences/bloc/auth/auth_event.dart';
 import 'package:m18_residences/bloc/auth/auth_state.dart';
+import 'package:m18_residences/utils/remembered_account.dart';
 import 'package:m18_residences_shared/m18_residences_shared.dart';
 
 import '../home/home_page.dart';
@@ -20,12 +21,28 @@ class LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   String? _accountIdError;
 
+  /// Whether a successful login keeps the account ID in this browser ("Remember me").
+  bool _remember = true;
+
+  /// The account ID of the login in progress.
+  String? _submittedId;
+
   @override
   void initState() {
     super.initState();
 
+    // A link's account ID wins over the remembered one.
     final accountId = accountIdFromUrl(LoginPage.launchUrl ?? Uri.base);
-    if (accountId != null) _controller.text = accountId;
+    if (accountId != null) {
+      _controller.text = accountId;
+    } else {
+      _prefillRemembered();
+    }
+  }
+
+  Future<void> _prefillRemembered() async {
+    final remembered = await RememberedAccount.read();
+    if (remembered != null && mounted && _controller.text.isEmpty) _controller.text = remembered;
   }
 
   void _searchTenant() {
@@ -33,8 +50,18 @@ class LoginPageState extends State<LoginPage> {
       _accountIdError = null;
     });
     if (_formKey.currentState?.validate() ?? false) {
-      final inputText = _controller.text.trim();
-      context.read<AuthBloc>().add(LoginWithAccountId(inputText.toUpperCase()));
+      final accountId = _controller.text.trim().toUpperCase();
+      _submittedId = accountId;
+      context.read<AuthBloc>().add(LoginWithAccountId(accountId));
+    }
+  }
+
+  Future<void> _rememberOrForget() async {
+    final accountId = _submittedId;
+    if (_remember && accountId != null) {
+      await RememberedAccount.save(accountId);
+    } else {
+      await RememberedAccount.forget();
     }
   }
 
@@ -57,6 +84,7 @@ class LoginPageState extends State<LoginPage> {
               });
               _formKey.currentState?.validate();
             } else if (state is Authenticated) {
+              _rememberOrForget();
               _controller.clear();
               if (!Navigator.of(context).canPop()) {
                 _navigateToPage(HomePage());
@@ -132,7 +160,8 @@ class LoginPageState extends State<LoginPage> {
               ),
               SizedBox(height: isMobile ? 16 : 20),
               _buildAccountIDInput(),
-              SizedBox(height: isMobile ? 16 : 20),
+              _buildRememberMe(),
+              SizedBox(height: isMobile ? 8 : 12),
               _buildSearchButton(),
             ],
           ),
@@ -148,12 +177,29 @@ class LoginPageState extends State<LoginPage> {
       prefixIcon: const Icon(Icons.person),
       errorMaxLines: 1,
       semanticsId: 'tenant-account-id',
+      autofocus: true,
+      onFieldSubmitted: (_) => _searchTenant(),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return 'Please enter your Account ID';
         }
         return _accountIdError;
       },
+    );
+  }
+
+  Widget _buildRememberMe() {
+    return Semantics(
+      container: true,
+      identifier: 'tenant-remember-me',
+      child: CheckboxListTile(
+        value: _remember,
+        onChanged: (value) => setState(() => _remember = value ?? false),
+        title: const Text('Remember me on this device'),
+        controlAffinity: ListTileControlAffinity.leading,
+        contentPadding: EdgeInsets.zero,
+        dense: true,
+      ),
     );
   }
 
