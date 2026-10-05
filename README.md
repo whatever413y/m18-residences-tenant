@@ -49,3 +49,4 @@ submit). Old links of the form `…/#/NAME` still work.
 
 Browser e2e builds use `--dart-define=E2E=true`, which keeps Flutter's accessibility tree on; tests find widgets by
 semantics ids such as `tenant-account-id`, `tenant-login-submit`, `tenant-latest-total` and `tenant-receipt-link`.
+
