@@ -6,7 +6,7 @@ import 'package:m18_residences_shared/m18_residences_shared.dart';
 /// The latest bill's payment and receipt: View buttons for both, and, until the owner attaches a receipt, an
 /// optional "Upload payment" that picks a screenshot or photo, converts it in the browser and hands it to [onUpload].
 ///
-/// Test ids: `tenant-upload-payment`, `tenant-payment-link`, `tenant-receipt-link`, `tenant-payment-message`.
+/// Test ids: `tenant-upload-payment`, `tenant-payment-link`, `tenant-receipt-link`.
 class PaymentSection extends StatefulWidget {
   final Bill bill;
   final String tenantName;
@@ -67,16 +67,6 @@ class _PaymentSectionState extends State<PaymentSection> {
     final error = _error ?? widget.uploadError;
     final canUpload = bill.status != BillStatus.paid;
 
-    final String message;
-    switch (bill.status) {
-      case BillStatus.unpaid:
-        message = 'Paid already? You can upload a screenshot or photo of your payment so the owner can confirm it (optional).';
-      case BillStatus.forVerification:
-        message = 'Your payment was sent. The owner will confirm it with a receipt.';
-      case BillStatus.paid:
-        message = 'Paid. The owner attached your receipt.';
-    }
-
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -89,8 +79,8 @@ class _PaymentSectionState extends State<PaymentSection> {
               'Payment',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
             ),
-            const SizedBox(height: 8),
-            Semantics(container: true, identifier: 'tenant-payment-message', child: Text(message)),
+            // Once a payment is under verification or paid, the status badge on the bill says it all.
+            if (bill.status == BillStatus.unpaid) ...[const SizedBox(height: 8), const Text('Upload a photo of your payment for confirmation')],
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
