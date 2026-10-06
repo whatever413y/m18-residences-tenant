@@ -24,6 +24,8 @@ Receipts, payment images and payment QR codes open in a dialog with Save (View b
 WebP files are saved as JPEG, the QR codes as PNG.
 Every text can be selected and copied.
 
+**Logo and icons:** the roofline M (white mark on the brand teal). `web/icons/logo.svg` and `logo-maskable.svg` are the masters; `web/favicon.svg` is a copy, and the PNGs (`favicon.png`, `icons/Icon-*.png`, `icons/apple-touch-icon.png`) are rendered from them at their sizes in Chrome. In the app, `BrandMark` from `m18_residences_shared` draws the same mark.
+
 ## Getting started
 
 1. **API URL:** copy `.env.example` to `.env` (repo root). `API_URL` (including `/api`) is compiled in with
