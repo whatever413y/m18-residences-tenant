@@ -2,18 +2,17 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
-import 'package:m18_residences/bloc/auth/auth_bloc.dart';
-import 'package:m18_residences/bloc/auth/auth_event.dart';
-import 'package:m18_residences/bloc/auth/auth_state.dart';
 import 'package:m18_residences/bloc/billing/billing_bloc.dart';
-import 'package:m18_residences/bloc/billing/billing_event.dart';
 import 'package:m18_residences/bloc/billing/billing_state.dart';
 import 'package:m18_residences/features/history/widgets/electric_consumption_bar_chart.dart';
+import 'package:m18_residences/features/shell/tenant_shell.dart';
 import 'package:m18_residences/utils/widgets/widgets.dart';
 import 'package:m18_residences_shared/m18_residences_shared.dart';
 
+/// A year of electricity use as a chart, and that year's bills.
 class HistoryPage extends StatefulWidget {
+  const HistoryPage({super.key});
+
   @override
   HistoryPageState createState() => HistoryPageState();
 }
@@ -27,245 +26,144 @@ class _YearChart {
   final List<ConsumptionPoint> months;
   final int yMax;
 
-  const _YearChart(this.bills, this.year, this.months, this.yMax);
+  /// The year's bills, newest first.
+  final List<Bill> yearBills;
+
+  const _YearChart(this.bills, this.year, this.months, this.yMax, this.yearBills);
+
+  int get total => yearBills.fold(0, (sum, b) => sum + b.consumption);
 }
 
 class HistoryPageState extends State<HistoryPage> {
-  late AuthBloc authBloc;
-  late BillingBloc billingBloc;
-  late Tenant tenant;
-
-  /// The year shown in the chart; this year until the tenant picks another.
+  /// The year shown; this year until the tenant picks another.
   int _selectedYear = DateTime.now().year;
   _YearChart? _chart;
-
-  @override
-  void initState() {
-    super.initState();
-    authBloc = context.read<AuthBloc>();
-    authBloc.add(CheckAuthStatus());
-    tenant = authBloc.cachedTenant!;
-    billingBloc = context.read<BillingBloc>();
-    _fetch();
-  }
-
-  void _fetch() => billingBloc.add(FetchBillingsByTenantId(tenant.id));
 
   _YearChart _chartFor(List<Bill> bills) {
     final cached = _chart;
     if (cached != null && identical(cached.bills, bills) && cached.year == _selectedYear) return cached;
 
+    final yearBills = bills.where((b) => b.createdAt.year == _selectedYear).toList();
     final months = List.generate(12, (index) {
       final month = 12 - index;
       // Bills come newest first, so a month with several bills shows its latest.
-      final bill = bills.where((b) => b.createdAt.year == _selectedYear && b.createdAt.month == month).firstOrNull;
+      final bill = yearBills.where((b) => b.createdAt.month == month).firstOrNull;
       return ConsumptionPoint(date: DateTime(_selectedYear, month), consumption: bill?.consumption ?? 0, currReading: bill?.currReading ?? 0);
     });
     final highest = months.map((m) => m.consumption).fold(0, math.max);
     // Rounded up to a multiple of 50, at least 50, so the axis has room and never collapses to zero.
     final yMax = math.max(50, (highest / 50).ceil() * 50);
-    return _chart = _YearChart(bills, _selectedYear, months, yMax);
+    return _chart = _YearChart(bills, _selectedYear, months, yMax, yearBills);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.lightTheme,
-      child: Scaffold(
-        appBar: CustomAppBar(title: "Billing History", subtitle: tenant.name, centerTitle: true, showRefresh: true, onRefresh: _fetch),
-        body: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, authState) {
-            if (authState is Unauthenticated) {
-              return ErrorView(message: authState.message);
-            }
-
-            return BlocBuilder<BillingBloc, BillingState>(
-              builder: (context, billingState) {
-                if (billingState is BillingError) {
-                  return ErrorView(message: billingState.message, onRetry: _fetch);
-                }
-                if (billingState is! BillingsLoaded) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final bills = billingState.bills;
-                if (bills.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('No bills yet. They show here once they are posted.', textAlign: TextAlign.center),
-                          const SizedBox(height: 12),
-                          OutlinedButton.icon(onPressed: _fetch, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                final years = {DateTime.now().year, ...bills.map((b) => b.createdAt.year)}.toList()..sort((a, b) => b.compareTo(a));
-                return ResponsiveCenter(
-                  maxWidth: 900,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: context.windowSize.isCompact ? 12 : 24, vertical: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Align(alignment: Alignment.centerRight, child: _buildYearSelector(years)),
-                        const SizedBox(height: 8),
-                        _buildGraph(_chartFor(bills)),
-                        const SizedBox(height: 8),
-                        Expanded(child: _buildBillingHistory(bills)),
-                      ],
-                    ),
-                  ),
-                );
-              },
+    final shell = TenantShell.of(context);
+    return Scaffold(
+      appBar: const TenantAppBar(title: 'History'),
+      body: BlocBuilder<BillingBloc, BillingState>(
+        builder: (context, state) {
+          if (state is BillingError) return ErrorView(message: state.message, onRetry: shell.refresh);
+          if (state is! BillingLoaded) return const Center(child: CircularProgressIndicator());
+          final bills = state.bills;
+          if (bills.isEmpty) {
+            return EmptyState(
+              icon: Icons.insights_outlined,
+              title: 'No bills yet',
+              message: 'Your bills and electricity use show here once they are posted.',
+              action: OutlinedButton.icon(onPressed: shell.refresh, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
             );
-          },
-        ),
-      ),
-    );
-  }
+          }
 
-  Widget _buildYearSelector(List<int> years) {
-    return SizedBox(
-      width: 120,
-      child: CustomDropdownForm<int>(
-        label: 'Year',
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        value: _selectedYear,
-        onChanged: (year) {
-          if (year != null) setState(() => _selectedYear = year);
-        },
-        items: years.map((year) => DropdownMenuItem<int>(value: year, child: Text('$year'))).toList(),
-      ),
-    );
-  }
-
-  Widget _buildGraph(_YearChart chart) {
-    return SizedBox(
-      height: 180,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // All twelve months fit the width the chart gets: thinner bars and smaller labels on phones.
-          final compact = WindowSize.fromWidth(constraints.maxWidth).isCompact;
-          final barWidth = (constraints.maxWidth / 12 * 0.5).clamp(8.0, 30.0);
-          return Padding(
-            padding: const EdgeInsets.only(top: 5, right: 8),
-            child: ElectricConsumptionBarChart(completeReadings: chart.months, yMax: chart.yMax, barWidth: barWidth, compact: compact),
+          final years = {DateTime.now().year, ...bills.map((b) => b.createdAt.year)}.toList()..sort((a, b) => b.compareTo(a));
+          final chart = _chartFor(bills);
+          final compact = context.windowSize.isCompact;
+          final yearBills = chart.yearBills;
+          return SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: compact ? 16 : 24, vertical: 20),
+            child: ResponsiveCenter(
+              maxWidth: 900,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildYearChips(years),
+                  const SizedBox(height: 16),
+                  _buildChartCard(context, chart),
+                  const SizedBox(height: 24),
+                  AppSection(title: 'Bills in ${chart.year}', subtitle: '${yearBills.length} ${yearBills.length == 1 ? 'bill' : 'bills'}'),
+                  // At most twelve bills a year, so one card (not a lazy list).
+                  Card(
+                    child: yearBills.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Text('No bills in ${chart.year}.', style: Theme.of(context).textTheme.bodyMedium),
+                          )
+                        : Column(
+                            children: [
+                              for (final (i, bill) in yearBills.indexed) ...[
+                                if (i > 0) const Divider(indent: 16, endIndent: 16),
+                                BillListTile(
+                                  bill,
+                                  onTap: () => showBillDetails(context, bill: bill, tenantName: shell.tenant.name, authApi: shell.authApi),
+                                ),
+                              ],
+                            ],
+                          ),
+                  ),
+                ],
+              ),
+            ),
           );
         },
       ),
     );
   }
 
-  Widget _buildBillingHistory(List<Bill> bills) {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      itemCount: bills.length,
-      itemBuilder: (context, index) {
-        final bill = bills[index];
-
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6.0),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () => showSelectableDialog(context: context, builder: (_) => _buildBillDialog(context, bill)),
-                child: buildBillCardWidget(bill, context),
-              ),
-            ),
-          ),
-        );
-      },
+  Widget _buildYearChips(List<int> years) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final year in years)
+          ChoiceChip(label: Text('$year'), selected: year == _selectedYear, onSelected: (_) => setState(() => _selectedYear = year)),
+      ],
     );
   }
 
-  Widget _buildBillDialog(BuildContext context, Bill bill) {
-    return AlertDialog(
-      insetPadding: context.windowSize.isCompact ? const EdgeInsets.all(12) : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-      title: const Text("Billing Details", style: TextStyle(fontWeight: FontWeight.bold)),
-      contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
-      content: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 600, maxHeight: MediaQuery.sizeOf(context).height * 0.8),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Flexible(
-                    child: Text(
-                      "Posting Date: ${DateFormat.yMMMMd().format(bill.createdAt)}",
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  BillStatusChip(bill.status),
-                ],
-              ),
-              if (bill.hasPayment || bill.hasReceipt) ...[
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    BillFileButton(
-                      kind: BillFileKind.payment,
-                      tenantName: tenant.name,
-                      fileUrl: bill.paymentUrl,
-                      fetchSignedFile: authBloc.authApi.signedTenantPaymentUrl,
-                    ),
-                    BillFileButton(
-                      kind: BillFileKind.receipt,
-                      tenantName: tenant.name,
-                      fileUrl: bill.receiptUrl,
-                      fetchSignedFile: authBloc.authApi.signedReceiptUrl,
-                    ),
-                  ],
-                ),
+  Widget _buildChartCard(BuildContext context, _YearChart chart) {
+    final theme = Theme.of(context);
+    final months = chart.yearBills.length;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Electricity use', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 16,
+              runSpacing: 4,
+              children: [
+                Text('${kwh(chart.total)} in ${chart.year}', style: theme.textTheme.bodySmall),
+                if (months > 0) Text('avg ${kwh((chart.total / months).round())} a month', style: theme.textTheme.bodySmall),
               ],
-              const SizedBox(height: 12),
-              const Divider(thickness: 1.2),
-              const SizedBox(height: 12),
-
-              buildReadingItemWidget("Previous Reading", bill.prevReading),
-              const SizedBox(height: 8),
-              buildReadingItemWidget("Current Reading", bill.currReading),
-              const SizedBox(height: 8),
-              buildReadingItemWidget("Consumption", bill.consumption),
-
-              const SizedBox(height: 12),
-              const Divider(thickness: 1.2),
-              const SizedBox(height: 12),
-
-              buildBillItemWidget("Room", bill.roomCharges),
-              const SizedBox(height: 8),
-
-              ...buildChargesDetails(bill.electricCharges, bill.additionalCharges),
-
-              const SizedBox(height: 12),
-              const Divider(thickness: 1.2),
-              const SizedBox(height: 12),
-
-              // Total
-              buildBillItemWidget("Total Amount", bill.totalAmount, isTotal: true),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 220,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // All twelve months fit the width the chart gets: thinner bars and smaller labels on phones.
+                  final compact = WindowSize.fromWidth(constraints.maxWidth).isCompact;
+                  final barWidth = (constraints.maxWidth / 12 * 0.55).clamp(8.0, 28.0);
+                  return ElectricConsumptionBarChart(completeReadings: chart.months, yMax: chart.yMax, barWidth: barWidth, compact: compact);
+                },
+              ),
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          child: const Text("Close", style: TextStyle(fontWeight: FontWeight.bold)),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ],
     );
   }
 }

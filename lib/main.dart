@@ -48,7 +48,14 @@ class MyApp extends StatelessWidget {
           context.read<AuthBloc>().add(LogoutRequested());
           Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => LoginPage()), (route) => false);
         },
-        child: MaterialApp(debugShowCheckedModeBanner: false, title: 'M18 Residences', theme: AppTheme.lightTheme, home: LoginPage()),
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'M18 Residences',
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: ThemeMode.system,
+          home: LoginPage(),
+        ),
       ),
     );
   }

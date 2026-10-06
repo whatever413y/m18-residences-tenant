@@ -30,6 +30,13 @@
 
   <title>M18 Residences</title>
   <link rel="manifest" href="manifest.json">
+  <!-- The theme's background (light and dark) while Flutter starts, so there is no white flash in dark mode. -->
+  <meta name="theme-color" content="#F8FAFC" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0B1120" media="(prefers-color-scheme: dark)">
+  <style>
+    body { background: #F8FAFC; }
+    @media (prefers-color-scheme: dark) { body { background: #0B1120; } }
+  </style>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

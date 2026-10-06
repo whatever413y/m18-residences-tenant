@@ -10,28 +10,24 @@ class BillingInitial extends BillingState {}
 
 class BillingLoading extends BillingState {}
 
-/// The tenant's bills, newest first; empty when there are none yet.
-class BillingsLoaded extends BillingState {
-  final List<Bill> bills;
-
-  BillingsLoaded(this.bills);
-
-  @override
-  List<Object?> get props => [bills];
-}
-
-/// The tenant's latest bill; `null` when there is none yet. While a payment image is uploaded [uploading] is set;
-/// afterwards [uploaded] (it worked) or [uploadError] says how it went.
+/// The tenant's bills, newest first (empty when there are none yet); [bill] is the latest. While a payment image is
+/// uploaded [uploading] is set; afterwards [uploaded] (it worked) or [uploadError] says how it went.
 class BillingLoaded extends BillingState {
-  final Bill? bill;
+  final List<Bill> bills;
   final bool uploading;
   final bool uploaded;
   final String? uploadError;
 
-  BillingLoaded(this.bill, {this.uploading = false, this.uploaded = false, this.uploadError});
+  BillingLoaded(this.bills, {this.uploading = false, this.uploaded = false, this.uploadError});
+
+  /// The latest bill, or `null` before the first one is posted.
+  Bill? get bill => bills.firstOrNull;
+
+  /// The bill before the latest one (for "vs last month").
+  Bill? get previous => bills.length > 1 ? bills[1] : null;
 
   @override
-  List<Object?> get props => [bill, uploading, uploaded, uploadError];
+  List<Object?> get props => [bills, uploading, uploaded, uploadError];
 }
 
 class BillingError extends BillingState {

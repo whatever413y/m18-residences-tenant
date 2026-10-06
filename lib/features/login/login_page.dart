@@ -6,7 +6,7 @@ import 'package:m18_residences/bloc/auth/auth_state.dart';
 import 'package:m18_residences/utils/remembered_account.dart';
 import 'package:m18_residences_shared/m18_residences_shared.dart';
 
-import '../home/home_page.dart';
+import '../shell/tenant_shell.dart';
 
 class LoginPage extends StatefulWidget {
   /// The URL the app was opened with (set in `main` before the router can rewrite it).
@@ -71,102 +71,81 @@ class LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.lightTheme;
-
-    return Theme(
-      data: theme,
-      child: Scaffold(
-        body: BlocConsumer<AuthBloc, AuthState>(
-          listener: (context, state) {
-            if (state is AuthError) {
-              setState(() {
-                _accountIdError = state.message;
-              });
-              _formKey.currentState?.validate();
-            } else if (state is Authenticated) {
-              _rememberOrForget();
-              _controller.clear();
-              if (!Navigator.of(context).canPop()) {
-                _navigateToPage(HomePage());
-              }
+    return Scaffold(
+      body: BlocConsumer<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthError) {
+            setState(() {
+              _accountIdError = state.message;
+            });
+            _formKey.currentState?.validate();
+          } else if (state is Authenticated) {
+            _rememberOrForget();
+            _controller.clear();
+            if (!Navigator.of(context).canPop()) {
+              _navigateToPage(const TenantShell());
             }
-          },
-          builder: (context, state) {
-            final isLoading = state is AuthLoading;
-
-            return _buildLoading(
-              isLoading,
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final maxWidth = constraints.maxWidth;
-                  final cardWidth = maxWidth < 500 ? maxWidth * 0.9 : 400.0;
-
-                  return Stack(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.blue.shade900, Colors.blue.shade500],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                          ),
-                        ),
-                      ),
-                      Center(
-                        child: SingleChildScrollView(
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(maxWidth: cardWidth),
-                            child: Padding(padding: const EdgeInsets.all(16.0), child: _buildCard(context, maxWidth)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
+          }
+        },
+        builder: (context, state) {
+          return Stack(
+            children: [
+              SafeArea(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+                    child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 420), child: _buildContent(context)),
+                  ),
+                ),
               ),
-            );
-          },
-        ),
+              if (state is AuthLoading) const LoadingOverlay(),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildLoading(bool isLoading, Widget child) {
-    return Stack(children: [child, if (isLoading) LoadingOverlay()]);
-  }
-
-  Widget _buildCard(BuildContext context, double maxWidth) {
-    final isMobile = maxWidth < 400;
-
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "Welcome",
-                style: TextStyle(fontSize: isMobile ? 22 : 26, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+  Widget _buildContent(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Center(child: BrandMark(size: 56)),
+        const SizedBox(height: 20),
+        Text('M18 Residences', style: theme.textTheme.headlineMedium, textAlign: TextAlign.center),
+        const SizedBox(height: 6),
+        Text(
+          'See your bill, your electricity use and how to pay.',
+          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 28),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Log in', style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 4),
+                  Text('Enter your account ID to continue.', style: theme.textTheme.bodySmall),
+                  const SizedBox(height: 20),
+                  _buildAccountIDInput(),
+                  const SizedBox(height: 4),
+                  _buildRememberMe(),
+                  const SizedBox(height: 12),
+                  _buildSearchButton(),
+                ],
               ),
-              SizedBox(height: isMobile ? 8 : 10),
-              Text(
-                "Enter your Account ID to continue",
-                style: TextStyle(fontSize: isMobile ? 14 : 16, color: Colors.grey[600]),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: isMobile ? 16 : 20),
-              _buildAccountIDInput(),
-              _buildRememberMe(),
-              SizedBox(height: isMobile ? 8 : 12),
-              _buildSearchButton(),
-            ],
+            ),
           ),
         ),
-      ),
+        const SizedBox(height: 20),
+        Text('Your account ID is the name on the link the owner sent you.', style: theme.textTheme.bodySmall, textAlign: TextAlign.center),
+      ],
     );
   }
 
@@ -174,7 +153,7 @@ class LoginPageState extends State<LoginPage> {
     return CustomTextFormField(
       controller: _controller,
       labelText: 'Account ID',
-      prefixIcon: const Icon(Icons.person),
+      prefixIcon: const Icon(Icons.person_outline),
       errorMaxLines: 1,
       semanticsId: 'tenant-account-id',
       autofocus: true,
@@ -207,19 +186,7 @@ class LoginPageState extends State<LoginPage> {
     return Semantics(
       container: true,
       identifier: 'tenant-login-submit',
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _searchTenant,
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            backgroundColor: Colors.blue.shade700,
-            elevation: 5,
-          ),
-          child: const Text('Submit', style: TextStyle(fontSize: 18, color: Colors.white)),
-        ),
-      ),
+      child: FilledButton(onPressed: _searchTenant, child: const Text('Continue')),
     );
   }
 }

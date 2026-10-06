@@ -3,8 +3,8 @@
     "short_name": "M18 Residences",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
+    "background_color": "#F8FAFC",
+    "theme_color": "#0F766E",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

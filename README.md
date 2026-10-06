@@ -13,6 +13,13 @@ The latest bill shows its status: **Unpaid**, **For verification** (the tenant u
 (optional; "Upload payment" / "Change payment"), converted in the browser like the admin's receipts
 (`prepareReceipt` from the shared package: ≤ 1600 px WebP, HEIC included, PDFs as-is).
 
+After login, `lib/features/shell/tenant_shell.dart` shows **Home**, **History** and **Pay** (a bottom bar on
+phones, a rail on wider screens); the bills are fetched once and shared by all three. **Home** leads with the
+latest bill (amount, status; tap for the statement), the next step (pay and upload proof, waiting for
+confirmation, or paid with the receipt), this month's electricity against last month's, and the recent bills.
+**History** has a year's consumption chart and that year's bills; **Pay** the steps and the QR codes. Light and
+dark follow the system.
+
 Receipts, payment images and payment QR codes open in a dialog with Save (View buttons, never links or file names):
 WebP files are saved as JPEG, the QR codes as PNG.
 Every text can be selected and copied.

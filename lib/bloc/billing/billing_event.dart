@@ -6,19 +6,11 @@ abstract class BillingEvent extends Equatable {
   List<Object> get props => [];
 }
 
+/// Loads all of the tenant's bills (one request; the home, statement and history all read them).
 class FetchBillingsByTenantId extends BillingEvent {
   final int tenantId;
 
   FetchBillingsByTenantId(this.tenantId);
-
-  @override
-  List<Object> get props => [tenantId];
-}
-
-class FetchBillingByTenantId extends BillingEvent {
-  final int tenantId;
-
-  FetchBillingByTenantId(this.tenantId);
 
   @override
   List<Object> get props => [tenantId];

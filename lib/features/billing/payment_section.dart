@@ -67,21 +67,23 @@ class _PaymentSectionState extends State<PaymentSection> {
     final error = _error ?? widget.uploadError;
     final canUpload = bill.status != BillStatus.paid;
 
+    final status = bill.status;
+    final hint = switch (status) {
+      BillStatus.unpaid => 'Paid already? Upload a screenshot or photo of your payment so the owner can confirm it.',
+      BillStatus.forVerification => 'Your proof of payment is waiting for the owner. You can still change it.',
+      BillStatus.paid => 'This bill is paid. Thank you!',
+    };
+
     return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Payment',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
-            ),
-            // Once a payment is under verification or paid, the status badge on the bill says it all.
-            if (bill.status == BillStatus.unpaid) ...[const SizedBox(height: 8), const Text('Upload a photo of your payment for confirmation')],
-            const SizedBox(height: 12),
+            Text('Payment', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(hint, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 16),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -90,12 +92,9 @@ class _PaymentSectionState extends State<PaymentSection> {
                   Semantics(
                     container: true,
                     identifier: 'tenant-upload-payment',
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(minimumSize: const Size(48, 48)),
+                    child: FilledButton.icon(
                       onPressed: busy ? null : _pick,
-                      icon: busy
-                          ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Icon(Icons.upload),
+                      icon: busy ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.upload),
                       label: Text(bill.hasPayment ? 'Change payment' : 'Upload payment'),
                     ),
                   ),
@@ -125,20 +124,29 @@ class _PaymentSectionState extends State<PaymentSection> {
             ),
             if (busy)
               Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(_preparing ? 'Preparing the image...' : 'Uploading...', style: const TextStyle(fontStyle: FontStyle.italic)),
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(_preparing ? 'Preparing the image...' : 'Uploading...', style: theme.textTheme.bodySmall),
               )
             else if (error != null)
               Padding(
-                padding: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.only(top: 12),
                 child: Text(error, style: TextStyle(color: theme.colorScheme.error)),
               )
             else if (widget.uploaded)
               Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  'Payment uploaded.',
-                  style: TextStyle(color: Colors.green.shade800, fontWeight: FontWeight.w600),
+                padding: const EdgeInsets.only(top: 12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle, size: 18, color: StatusColors.of(context).onPaid),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'Payment uploaded.',
+                        style: theme.textTheme.bodyMedium?.copyWith(color: StatusColors.of(context).onPaid, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],

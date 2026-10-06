@@ -2,152 +2,209 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:m18_residences_shared/m18_residences_shared.dart';
 
-Widget buildBillItemWidget(String label, int amount, {bool isTotal = false}) {
-  final currencyFormat = NumberFormat.currency(locale: 'en_PH', symbol: '₱', decimalDigits: 0);
+/// "October 2026": the month a bill was posted in.
+String billMonth(Bill bill) => DateFormat.yMMMM().format(bill.createdAt);
 
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(fontSize: isTotal ? 18 : 16, fontWeight: isTotal ? FontWeight.bold : FontWeight.normal),
-            softWrap: true,
-          ),
-        ),
+/// One line of a breakdown: [label] (and an optional [detail] under it) with an amount on the right.
+class AmountRow extends StatelessWidget {
+  final String label;
+  final String? detail;
+  final num amount;
+  final bool emphasized;
 
-        const SizedBox(width: 8),
+  const AmountRow({super.key, required this.label, required this.amount, this.detail, this.emphasized = false});
 
-        Text(
-          currencyFormat.format(amount),
-          style: TextStyle(
-            fontSize: isTotal ? 18 : 16,
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-            color: isTotal ? Colors.blue.shade900 : Colors.black87,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget buildReadingItemWidget(String label, int value) {
-  final numberFormat = NumberFormat.decimalPattern();
-
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 2),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[700]), softWrap: true),
-        ),
-        const SizedBox(width: 8),
-        Text("${numberFormat.format(value)} kWh", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-      ],
-    ),
-  );
-}
-
-/// [totalSemanticsId] tags the "Total Amount" row for browser e2e tests (`flt-semantics-identifier`).
-Widget buildBillCardWidget(Bill bill, BuildContext context, {String? totalSemanticsId}) {
-  final total = buildBillItemWidget("Total Amount", bill.totalAmount, isTotal: true);
-
-  return Card(
-    elevation: 4,
-    margin: EdgeInsets.symmetric(vertical: 8),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    child: Padding(
-      padding: EdgeInsets.all(16.0),
-      child: Column(
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = emphasized ? theme.textTheme.titleMedium : theme.textTheme.bodyLarge;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(
-                  "Posting Date: ${DateFormat.yMMMMd().format(bill.createdAt)}",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
-                ),
-              ),
-              const SizedBox(width: 8),
-              BillStatusChip(bill.status),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: style),
+                if (detail != null) Text(detail!, style: theme.textTheme.bodySmall),
+              ],
+            ),
           ),
-          Divider(),
-          buildReadingItemWidget("Consumption", bill.consumption),
-          Divider(),
-          if (totalSemanticsId == null) total else Semantics(container: true, identifier: totalSemanticsId, child: total),
+          const SizedBox(width: 12),
+          MoneyText(amount, style: style),
         ],
       ),
-    ),
-  );
+    );
+  }
 }
 
-List<Widget> buildChargesDetails(int electricCharges, List<AdditionalCharge> charges) {
-  final currencyFormat = NumberFormat.currency(locale: 'en_PH', symbol: '₱', decimalDigits: 0);
-  final additionalCharges = charges.where((c) => c.amount >= 0).toList();
-  final discounts = charges.where((c) => c.amount < 0).toList();
+/// A label with a value on the right, e.g. a meter reading.
+class ValueRow extends StatelessWidget {
+  final String label;
+  final String value;
 
-  List<Widget> detailRows = [];
+  const ValueRow(this.label, this.value, {super.key});
 
-  detailRows.add(const SizedBox(height: 12));
-  detailRows.add(const Text('Additional Charges', style: TextStyle(fontWeight: FontWeight.normal, fontSize: 16)));
-  detailRows.add(const SizedBox(height: 8));
-  detailRows.add(buildChargeRow("Electricity", currencyFormat.format(electricCharges)));
-
-  for (final charge in additionalCharges) {
-    detailRows.add(buildChargeRow(charge.description, currencyFormat.format(charge.amount)));
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, fontFeatures: AppTheme.tabularFigures),
+          ),
+        ],
+      ),
+    );
   }
+}
 
-  if (discounts.isNotEmpty) {
-    detailRows.add(const SizedBox(height: 16));
-    detailRows.add(const Text('Discounts', style: TextStyle(fontWeight: FontWeight.normal, fontSize: 16)));
-    detailRows.add(const SizedBox(height: 8));
+String kwh(int value) => '${formatCount(value)} kWh';
 
-    for (final charge in discounts) {
-      detailRows.add(buildChargeRow(charge.description, currencyFormat.format(charge.amount.abs())));
-    }
+/// The bill's meter readings and every charge down to the total; [totalSemanticsId] tags the total for e2e tests.
+class BillBreakdown extends StatelessWidget {
+  final Bill bill;
+  final String? totalSemanticsId;
+
+  const BillBreakdown(this.bill, {super.key, this.totalSemanticsId});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final charges = bill.additionalCharges.where((c) => c.amount >= 0);
+    final discounts = bill.additionalCharges.where((c) => c.amount < 0);
+    final total = AmountRow(label: 'Total', amount: bill.totalAmount, emphasized: true);
+    final rate = bill.consumption > 0 ? bill.electricCharges / bill.consumption : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Electricity', style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        const SizedBox(height: 4),
+        ValueRow('Previous reading', kwh(bill.prevReading)),
+        ValueRow('Current reading', kwh(bill.currReading)),
+        ValueRow('Consumption', kwh(bill.consumption)),
+        const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
+        Text('Charges', style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        const SizedBox(height: 4),
+        AmountRow(label: 'Room', amount: bill.roomCharges),
+        AmountRow(
+          label: 'Electricity',
+          detail: rate == null ? null : '${kwh(bill.consumption)} × ${formatPeso(rate)}/kWh',
+          amount: bill.electricCharges,
+        ),
+        for (final c in charges) AmountRow(label: c.description.isEmpty ? 'Other charge' : c.description, amount: c.amount),
+        for (final c in discounts) AmountRow(label: c.description.isEmpty ? 'Discount' : c.description, detail: 'Discount', amount: c.amount),
+        const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider()),
+        if (totalSemanticsId == null) total else Semantics(container: true, identifier: totalSemanticsId, child: total),
+      ],
+    );
   }
+}
 
-  if (electricCharges > 0 || charges.isNotEmpty) {
-    final subtotal = electricCharges + charges.fold<double>(0.0, (sum, c) => sum + c.amount);
+/// A bill in a list: month, consumption, total and status; [onTap] opens it.
+class BillListTile extends StatelessWidget {
+  final Bill bill;
+  final VoidCallback? onTap;
 
-    detailRows.add(const SizedBox(height: 8));
+  const BillListTile(this.bill, {super.key, this.onTap});
 
-    detailRows.add(
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text("Subtotal", style: TextStyle(fontWeight: FontWeight.bold)),
-            Text(currencyFormat.format(subtotal), style: const TextStyle(fontWeight: FontWeight.bold)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(billMonth(bill), style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 2),
+                  Text(kwh(bill.consumption), style: theme.textTheme.bodySmall),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                MoneyText(bill.totalAmount, style: theme.textTheme.titleSmall),
+                const SizedBox(height: 4),
+                BillStatusChip(bill.status),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
-
-  return detailRows;
 }
 
-Widget buildChargeRow(String description, String amount) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 2),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            description.isNotEmpty ? description : '-',
-            style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.grey),
+/// A past bill in a dialog: status, the tenant's payment and the receipt (if any) and the full breakdown.
+Future<void> showBillDetails(BuildContext context, {required Bill bill, required String tenantName, required AuthApi authApi}) {
+  final compact = context.windowSize.isCompact;
+  return showSelectableDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      insetPadding: compact ? const EdgeInsets.all(12) : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      title: Text(billMonth(bill)),
+      contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+      content: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 520, maxHeight: MediaQuery.sizeOf(context).height * 0.75),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  BillStatusChip(bill.status),
+                  Text('Posted ${DateFormat.yMMMd().format(bill.createdAt)}', style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+              if (bill.hasPayment || bill.hasReceipt) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    BillFileButton(
+                      kind: BillFileKind.payment,
+                      tenantName: tenantName,
+                      fileUrl: bill.paymentUrl,
+                      fetchSignedFile: authApi.signedTenantPaymentUrl,
+                    ),
+                    BillFileButton(
+                      kind: BillFileKind.receipt,
+                      tenantName: tenantName,
+                      fileUrl: bill.receiptUrl,
+                      fetchSignedFile: authApi.signedReceiptUrl,
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 20),
+              BillBreakdown(bill),
+            ],
           ),
         ),
-        Text(amount),
-      ],
+      ),
+      actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
     ),
   );
 }

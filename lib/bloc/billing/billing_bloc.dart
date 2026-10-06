@@ -9,7 +9,6 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
 
   BillingBloc({required this.billApi}) : super(BillingInitial()) {
     on<FetchBillingsByTenantId>(_onFetchBillingsByTenantId);
-    on<FetchBillingByTenantId>(_onFetchBillingByTenantId);
     on<UploadPayment>(_onUploadPayment);
   }
 
@@ -22,33 +21,23 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       return emit(BillingError(_failureMessage('Failed to load bills', e)));
     }
 
-    emit(BillingsLoaded(bills));
+    emit(BillingLoaded(bills));
   }
 
-  Future<void> _onFetchBillingByTenantId(FetchBillingByTenantId event, Emitter<BillingState> emit) async {
-    emit(BillingLoading());
-    final Bill? bill;
-    try {
-      bill = await billApi.latestForTenant(event.tenantId);
-    } catch (e) {
-      return emit(BillingError(_failureMessage('Failed to load bill', e)));
-    }
-
-    emit(BillingLoaded(bill));
-  }
-
-  /// The bill stays on screen during the upload; the server's answer is the updated bill (no refetch).
+  /// The bills stay on screen during the upload; the server's answer is the updated bill, swapped into the list
+  /// (no refetch).
   Future<void> _onUploadPayment(UploadPayment event, Emitter<BillingState> emit) async {
     final payment = event.payment;
-    emit(BillingLoaded(event.bill, uploading: true));
+    final bills = state is BillingLoaded ? (state as BillingLoaded).bills : [event.bill];
+    emit(BillingLoaded(bills, uploading: true));
     try {
       final updated = await billApi.uploadPayment(event.bill.id, bytes: payment.bytes, filename: payment.filename, contentType: payment.contentType);
-      emit(BillingLoaded(updated, uploaded: true));
+      emit(BillingLoaded([for (final b in bills) b.id == updated.id ? updated : b], uploaded: true));
     } catch (e) {
       final message = e is ApiException && e.statusCode == 409
           ? 'This bill is already paid. Refresh to see the receipt.'
           : _failureMessage('The payment upload failed', e);
-      emit(BillingLoaded(event.bill, uploadError: message));
+      emit(BillingLoaded(bills, uploadError: message));
     }
   }
 
