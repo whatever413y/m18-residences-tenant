@@ -22,7 +22,11 @@ class BillingPage extends StatelessWidget {
 
     return Scaffold(
       appBar: CustomAppBar(title: 'Statement', subtitle: tenant.name, showRefresh: true, onRefresh: refresh),
-      body: BlocBuilder<BillingBloc, BillingState>(
+      body: BlocConsumer<BillingBloc, BillingState>(
+        // Announce a finished payment upload (it also shows under the buttons).
+        listenWhen: (previous, current) => current is BillingLoaded && current.uploaded && !(previous is BillingLoaded && previous.uploaded),
+        listener: (context, _) =>
+            AppToast.show(context, 'The owner will confirm it and attach a receipt.', title: 'Payment uploaded', type: ToastType.success),
         builder: (context, state) {
           if (state is BillingError) return ErrorView(message: state.message, onRetry: refresh);
           if (state is! BillingLoaded) return const Center(child: CircularProgressIndicator());
