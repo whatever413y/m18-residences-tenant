@@ -35,7 +35,8 @@ class HomePage extends StatelessWidget {
           return SingleChildScrollView(
             padding: EdgeInsets.symmetric(horizontal: context.windowSize.isCompact ? 16 : 24, vertical: 20),
             child: ResponsiveCenter(
-              maxWidth: 1100,
+              // A little wider on large screens; the two columns stay readable.
+              maxWidth: context.windowSize.isLarge ? 1280 : 1100,
               child: ResponsiveBuilder(
                 compact: (_) => Center(
                   child: ConstrainedBox(
@@ -153,7 +154,7 @@ class _NextStep extends StatelessWidget {
       BillStatus.unpaid => (
         Icons.qr_code_scanner,
         'Pay ${formatPeso(bill.totalAmount)}',
-        'Scan a QR code under Pay with GCash, Maya or BPI, then upload a screenshot of your payment.',
+        'Pay with one of the accounts under Pay (scan its QR code or use the account number), then upload a screenshot of your payment.',
         [
           FilledButton.icon(onPressed: () => shell.select(TenantTab.pay), icon: const Icon(Icons.qr_code_2), label: const Text('Pay now')),
           OutlinedButton.icon(onPressed: shell.openStatement, icon: const Icon(Icons.upload), label: const Text('Upload proof')),

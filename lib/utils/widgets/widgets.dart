@@ -153,58 +153,44 @@ class BillListTile extends StatelessWidget {
   }
 }
 
-/// A past bill in a dialog: status, the tenant's payment and the receipt (if any) and the full breakdown.
+/// A bill's details in a modal (a bottom sheet on phones): status, the tenant's payment and the receipt (if any) and
+/// the full breakdown.
 Future<void> showBillDetails(BuildContext context, {required Bill bill, required String tenantName, required AuthApi authApi}) {
-  final compact = context.windowSize.isCompact;
-  return showSelectableDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      insetPadding: compact ? const EdgeInsets.all(12) : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-      title: Text(billMonth(bill)),
-      contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
-      content: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 520, maxHeight: MediaQuery.sizeOf(context).height * 0.75),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  BillStatusChip(bill.status),
-                  Text('Posted ${DateFormat.yMMMd().format(bill.createdAt)}', style: Theme.of(context).textTheme.bodySmall),
-                ],
-              ),
-              if (bill.hasPayment || bill.hasReceipt) ...[
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    BillFileButton(
-                      kind: BillFileKind.payment,
-                      tenantName: tenantName,
-                      fileUrl: bill.paymentUrl,
-                      fetchSignedFile: authApi.signedTenantPaymentUrl,
-                    ),
-                    BillFileButton(
-                      kind: BillFileKind.receipt,
-                      tenantName: tenantName,
-                      fileUrl: bill.receiptUrl,
-                      fetchSignedFile: authApi.signedReceiptUrl,
-                    ),
-                  ],
+  return showAppModal<void>(
+    context,
+    builder: (context) => AppModal(
+      overline: 'Bill',
+      title: billMonth(bill),
+      subtitle: 'Posted ${DateFormat.yMMMd().format(bill.createdAt)}',
+      trailing: BillStatusChip(bill.status),
+      maxWidth: 520,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (bill.hasPayment || bill.hasReceipt) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                BillFileButton(
+                  kind: BillFileKind.payment,
+                  tenantName: tenantName,
+                  fileUrl: bill.paymentUrl,
+                  fetchSignedFile: authApi.signedTenantPaymentUrl,
+                ),
+                BillFileButton(
+                  kind: BillFileKind.receipt,
+                  tenantName: tenantName,
+                  fileUrl: bill.receiptUrl,
+                  fetchSignedFile: authApi.signedReceiptUrl,
                 ),
               ],
-              const SizedBox(height: 20),
-              BillBreakdown(bill),
-            ],
-          ),
-        ),
+            ),
+            const SizedBox(height: 20),
+          ],
+          BillBreakdown(bill),
+        ],
       ),
-      actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
     ),
   );
 }
