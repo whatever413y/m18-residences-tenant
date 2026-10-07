@@ -4,6 +4,9 @@ import 'package:m18_residences/bloc/auth/auth_bloc.dart';
 import 'package:m18_residences/bloc/auth/auth_state.dart';
 import 'package:m18_residences/bloc/billing/billing_bloc.dart';
 import 'package:m18_residences/bloc/billing/billing_event.dart';
+import 'package:m18_residences/bloc/payment/payment_bloc.dart';
+import 'package:m18_residences/bloc/payment/payment_event.dart';
+import 'package:m18_residences/bloc/payment/payment_state.dart';
 import 'package:m18_residences/features/billing/billing_page.dart';
 import 'package:m18_residences/features/history/history_page.dart';
 import 'package:m18_residences/features/home/home_page.dart';
@@ -11,7 +14,8 @@ import 'package:m18_residences/features/payment/payment_page.dart';
 import 'package:m18_residences_shared/m18_residences_shared.dart';
 
 /// The tenant's app after login: Home, History and Pay, as a bottom bar on phones and a rail on wider screens.
-/// It loads the tenant's bills once; every tab reads them from [BillingBloc].
+/// It loads the tenant's bills once; every tab reads them from [BillingBloc]. The payment methods load when Pay is
+/// first opened.
 class TenantShell extends StatefulWidget {
   const TenantShell({super.key});
 
@@ -40,9 +44,18 @@ class TenantShellState extends State<TenantShell> {
     refresh();
   }
 
-  void refresh() => _billingBloc.add(FetchBillingsByTenantId(tenant.id));
+  /// Reloads the bills, and the payment methods once they were loaded.
+  void refresh() {
+    _billingBloc.add(FetchBillingsByTenantId(tenant.id));
+    final payments = context.read<PaymentBloc>();
+    if (payments.state is! PaymentInitial) payments.add(LoadPaymentMethods());
+  }
 
-  void select(TenantTab tab) => setState(() => _tab = tab);
+  void select(TenantTab tab) {
+    final payments = context.read<PaymentBloc>();
+    if (tab == TenantTab.pay && payments.state is PaymentInitial) payments.add(LoadPaymentMethods());
+    setState(() => _tab = tab);
+  }
 
   /// The latest bill's statement, where the tenant also uploads their payment.
   void openStatement() => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const BillingPage()));
@@ -57,7 +70,7 @@ class TenantShellState extends State<TenantShell> {
         return AdaptiveScaffold(
           selectedIndex: _tab.index,
           onDestinationSelected: (i) => select(TenantTab.values[i]),
-          railHeader: (context, extended) => BrandMark(label: extended ? 'M18 Residences' : null),
+          railHeader: (context, extended) => RailBrand(label: 'M18 Residences', extended: extended),
           destinations: const [
             AdaptiveDestination(label: 'Home', icon: Icons.home_outlined, selectedIcon: Icons.home),
             AdaptiveDestination(label: 'History', icon: Icons.insights_outlined, selectedIcon: Icons.insights),
@@ -76,7 +89,8 @@ class TenantShellState extends State<TenantShell> {
   }
 }
 
-/// The app bar of a tab: its title, the tenant's name, Refresh (optional) and Logout.
+/// The app bar of a tab: its title, the tenant's name, Refresh (optional), the light/dark switch on phones (the rail
+/// has it on wider screens) and Logout.
 class TenantAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool showRefresh;
@@ -92,6 +106,7 @@ class TenantAppBar extends StatelessWidget implements PreferredSizeWidget {
       showLeading: false,
       actions: [
         if (showRefresh) IconButton(icon: const Icon(Icons.refresh), tooltip: 'Refresh', onPressed: shell.refresh),
+        if (context.windowSize.isCompact) const ThemeModeButton(),
         IconButton(icon: const Icon(Icons.logout), tooltip: 'Logout', onPressed: () => LogoutScope.logout(context)),
       ],
     );
