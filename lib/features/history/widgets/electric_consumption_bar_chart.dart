@@ -2,7 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// One bar of the chart: a bill's posting date with its reading's consumption and current meter value.
+/// One bar of the chart: a usage month (the month before its bill was posted) with its consumption and current meter value.
 class ConsumptionPoint {
   final DateTime date;
   final int consumption;
@@ -98,7 +98,7 @@ class ElectricConsumptionBarChart extends StatelessWidget {
             getTooltipColor: (_) => scheme.inverseSurface,
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
               return BarTooltipItem(
-                '${rod.toY.toInt()} kWh',
+                '${DateFormat.MMM().format(reversedReadings[group.x].date)} · ${rod.toY.toInt()} kWh',
                 theme.textTheme.labelMedium!.copyWith(color: scheme.onInverseSurface, fontWeight: FontWeight.w600),
               );
             },
