@@ -18,42 +18,59 @@ class HistoryPage extends StatefulWidget {
 }
 
 /// The year's chart data, recomputed only when the bills or the year change.
-class _YearChart {
+class YearChart {
   final List<Bill> bills;
   final int year;
 
-  /// Twelve points, December first (zeros for months without a bill).
+  /// Twelve points, December first, by usage month (a bill posted in January is the December before's usage; zeros
+  /// for months without a bill).
   final List<ConsumptionPoint> months;
   final int yMax;
 
-  /// The year's bills, newest first.
+  /// The bills posted in [year], newest first.
   final List<Bill> yearBills;
 
-  const _YearChart(this.bills, this.year, this.months, this.yMax, this.yearBills);
+  const YearChart._(this.bills, this.year, this.months, this.yMax, this.yearBills);
 
-  int get total => yearBills.fold(0, (sum, b) => sum + b.consumption);
+  /// [bills] newest first, as the tenant's bills come.
+  factory YearChart.of(List<Bill> bills, int year) {
+    final months = List.generate(12, (index) {
+      final month = 12 - index;
+      // Bills come newest first, so a month with several bills shows its latest.
+      final bill = bills.where((b) {
+        final used = usageMonth(b);
+        return used.year == year && used.month == month;
+      }).firstOrNull;
+      return ConsumptionPoint(date: DateTime(year, month), consumption: bill?.consumption ?? 0, currReading: bill?.currReading ?? 0);
+    });
+    final highest = months.map((m) => m.consumption).fold(0, math.max);
+    // Rounded up to a multiple of 50, at least 50, so the axis has room and never collapses to zero.
+    final yMax = math.max(50, (highest / 50).ceil() * 50);
+    return YearChart._(bills, year, months, yMax, bills.where((b) => b.createdAt.year == year).toList());
+  }
+
+  /// The kWh used in [year].
+  int get total => months.fold(0, (sum, m) => sum + m.consumption);
+
+  /// The months of [year] with usage.
+  int get usedMonths => months.where((m) => m.consumption > 0).length;
+
+  /// Years with a bill posted or electricity used, and this year; newest first.
+  static List<int> yearsOf(List<Bill> bills, {required int thisYear}) => {
+    thisYear,
+    for (final b in bills) ...[b.createdAt.year, usageMonth(b).year],
+  }.toList()..sort((a, b) => b.compareTo(a));
 }
 
 class HistoryPageState extends State<HistoryPage> {
   /// The year shown; this year until the tenant picks another.
   int _selectedYear = DateTime.now().year;
-  _YearChart? _chart;
+  YearChart? _chart;
 
-  _YearChart _chartFor(List<Bill> bills) {
+  YearChart _chartFor(List<Bill> bills) {
     final cached = _chart;
     if (cached != null && identical(cached.bills, bills) && cached.year == _selectedYear) return cached;
-
-    final yearBills = bills.where((b) => b.createdAt.year == _selectedYear).toList();
-    final months = List.generate(12, (index) {
-      final month = 12 - index;
-      // Bills come newest first, so a month with several bills shows its latest.
-      final bill = yearBills.where((b) => b.createdAt.month == month).firstOrNull;
-      return ConsumptionPoint(date: DateTime(_selectedYear, month), consumption: bill?.consumption ?? 0, currReading: bill?.currReading ?? 0);
-    });
-    final highest = months.map((m) => m.consumption).fold(0, math.max);
-    // Rounded up to a multiple of 50, at least 50, so the axis has room and never collapses to zero.
-    final yMax = math.max(50, (highest / 50).ceil() * 50);
-    return _chart = _YearChart(bills, _selectedYear, months, yMax, yearBills);
+    return _chart = YearChart.of(bills, _selectedYear);
   }
 
   @override
@@ -75,7 +92,7 @@ class HistoryPageState extends State<HistoryPage> {
             );
           }
 
-          final years = {DateTime.now().year, ...bills.map((b) => b.createdAt.year)}.toList()..sort((a, b) => b.compareTo(a));
+          final years = YearChart.yearsOf(bills, thisYear: DateTime.now().year);
           final chart = _chartFor(bills);
           final compact = context.windowSize.isCompact;
           final yearBills = chart.yearBills;
@@ -90,13 +107,13 @@ class HistoryPageState extends State<HistoryPage> {
                   const SizedBox(height: 16),
                   _buildChartCard(context, chart),
                   const SizedBox(height: 24),
-                  AppSection(title: 'Bills in ${chart.year}', subtitle: '${yearBills.length} ${yearBills.length == 1 ? 'bill' : 'bills'}'),
+                  AppSection(title: 'Bills posted in ${chart.year}', subtitle: '${yearBills.length} ${yearBills.length == 1 ? 'bill' : 'bills'}'),
                   // At most twelve bills a year, so one card (not a lazy list).
                   Card(
                     child: yearBills.isEmpty
                         ? Padding(
                             padding: const EdgeInsets.all(20),
-                            child: Text('No bills in ${chart.year}.', style: Theme.of(context).textTheme.bodyMedium),
+                            child: Text('No bills posted in ${chart.year}.', style: Theme.of(context).textTheme.bodyMedium),
                           )
                         : Column(
                             children: [
@@ -130,9 +147,9 @@ class HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Widget _buildChartCard(BuildContext context, _YearChart chart) {
+  Widget _buildChartCard(BuildContext context, YearChart chart) {
     final theme = Theme.of(context);
-    final months = chart.yearBills.length;
+    final months = chart.usedMonths;
     return Card(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 16, 12),

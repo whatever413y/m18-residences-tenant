@@ -2,8 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:m18_residences_shared/m18_residences_shared.dart';
 
-/// "October 2026": the month a bill was posted in.
+/// "October 2026": the month a bill was posted in (its room charge is for this month).
 String billMonth(Bill bill) => DateFormat.yMMMM().format(bill.createdAt);
+
+/// The month a bill's electricity was used: bills are posted early in a month for the month before's usage.
+DateTime usageMonth(Bill bill) => DateTime(bill.createdAt.year, bill.createdAt.month - 1);
+
+/// "September 2026": [usageMonth] as text.
+String usageMonthLabel(Bill bill) => DateFormat.yMMMM().format(usageMonth(bill));
 
 /// One line of a breakdown: [label] (and an optional [detail] under it) with an amount on the right.
 class AmountRow extends StatelessWidget {
@@ -88,7 +94,7 @@ class BillBreakdown extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Electricity', style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        Text('Electricity · ${usageMonthLabel(bill)}', style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
         const SizedBox(height: 4),
         ValueRow('Previous reading', kwh(bill.prevReading)),
         ValueRow('Current reading', kwh(bill.currReading)),
@@ -133,7 +139,7 @@ class BillListTile extends StatelessWidget {
                 children: [
                   Text(billMonth(bill), style: theme.textTheme.titleSmall),
                   const SizedBox(height: 2),
-                  Text(kwh(bill.consumption), style: theme.textTheme.bodySmall),
+                  Text('${kwh(bill.consumption)} · ${DateFormat.MMM().format(usageMonth(bill))} usage', style: theme.textTheme.bodySmall),
                 ],
               ),
             ),

@@ -116,7 +116,7 @@ class _BillHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Posted ${DateFormat.yMMMd().format(bill.createdAt)} · ${kwh(bill.consumption)}',
+                  'Posted ${DateFormat.yMMMd().format(bill.createdAt)} · ${kwh(bill.consumption)} in ${DateFormat.MMMM().format(usageMonth(bill))}',
                   style: theme.textTheme.bodySmall?.copyWith(color: onHero.withValues(alpha: 0.8)),
                 ),
                 const SizedBox(height: 12),
@@ -225,7 +225,7 @@ class _NextStep extends StatelessWidget {
   }
 }
 
-/// This month's consumption (with the change against the previous bill) and electricity charge.
+/// The latest bill's consumption (its usage month, with the change against the previous bill) and electricity charge.
 class _UsageTiles extends StatelessWidget {
   final Bill bill;
   final Bill? previous;
@@ -251,7 +251,7 @@ class _UsageTiles extends StatelessWidget {
           const SizedBox(width: 2),
           Flexible(
             child: Text(
-              '${percent.abs()}% vs ${DateFormat.MMM().format(before.createdAt)}',
+              '${percent.abs()}% vs ${DateFormat.MMM().format(usageMonth(before))}',
               style: theme.textTheme.labelMedium?.copyWith(color: color),
               overflow: TextOverflow.ellipsis,
             ),
@@ -266,9 +266,9 @@ class _UsageTiles extends StatelessWidget {
         Expanded(
           child: _Tile(
             icon: Icons.bolt,
-            label: 'Electricity used',
+            label: 'Used in ${DateFormat.MMMM().format(usageMonth(bill))}',
             value: kwh(bill.consumption),
-            footer: change ?? Text('This month', style: theme.textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant)),
+            footer: change ?? Text('Electricity', style: theme.textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant)),
           ),
         ),
         const SizedBox(width: 12),
