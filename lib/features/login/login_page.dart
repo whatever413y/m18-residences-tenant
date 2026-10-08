@@ -26,7 +26,8 @@ class LoginPageState extends State<LoginPage> {
   bool _submitWhenVerified = false;
 
   /// Whether a successful login keeps the account ID in this browser ("Remember me").
-  bool _remember = true;
+  /// Off unless the tenant ticks it (the account ID is their only credential), or ticked it before.
+  bool _remember = false;
 
   /// The account ID of the login in progress.
   String? _submittedId;
@@ -63,7 +64,10 @@ class LoginPageState extends State<LoginPage> {
 
   Future<void> _prefillRemembered() async {
     final remembered = await RememberedAccount.read();
-    if (remembered != null && mounted && _controller.text.isEmpty) _controller.text = remembered;
+    if (remembered == null || !mounted) return;
+    // Remembered before, so the tenant chose it on this device.
+    setState(() => _remember = true);
+    if (_controller.text.isEmpty) _controller.text = remembered;
   }
 
   void _searchTenant() {
@@ -205,6 +209,7 @@ class LoginPageState extends State<LoginPage> {
         value: _remember,
         onChanged: (value) => setState(() => _remember = value ?? false),
         title: const Text('Remember me on this device'),
+        subtitle: const Text('Only on your own phone: anyone using this browser can then log in as you.'),
         controlAffinity: ListTileControlAffinity.leading,
         contentPadding: EdgeInsets.zero,
         dense: true,
