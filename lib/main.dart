@@ -20,6 +20,8 @@ Future<void> main() async {
   // Throws a clear StateError at startup, rather than on the first request, when the build has no API_URL
   // (build/run with --dart-define-from-file=.env).
   ApiConfig.baseUrl;
+  // Likewise without TURNSTILE_SITE_KEY (the login page's captcha).
+  TurnstileConfig.siteKey;
 
   WidgetsFlutterBinding.ensureInitialized();
   final themeMode = await ThemeModeController.load();

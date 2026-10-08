@@ -71,11 +71,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     try {
-      final session = await authApi.tenantLogin(event.accountId);
+      final session = await authApi.tenantLogin(event.accountId, turnstileToken: event.turnstileToken);
       _cachedTenant = session.tenant;
       emit(Authenticated(token: session.token, tenant: session.tenant));
     } on TenantNotFoundException {
       emit(AuthError('Account ID not found.'));
+    } on TooManyAttemptsException {
+      emit(AuthError('Too many attempts. Please wait a minute and try again.'));
+    } on VerificationFailedException catch (e) {
+      emit(AuthError(e.unavailable ? "Couldn't verify right now. Please try again." : 'Verification failed. Please try again.'));
     } on TimeoutException {
       emit(AuthError('Connection timed out. Please try again.'));
     } on SocketException {

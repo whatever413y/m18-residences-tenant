@@ -105,8 +105,9 @@ class _PaymentSectionState extends State<PaymentSection> {
                     child: BillFileButton(
                       kind: BillFileKind.payment,
                       tenantName: widget.tenantName,
+                      billId: bill.id,
                       fileUrl: bill.paymentUrl,
-                      fetchSignedFile: widget.authApi.signedTenantPaymentUrl,
+                      fetchSignedFile: widget.authApi.signedBillFileUrl,
                     ),
                   ),
                 if (bill.hasReceipt)
@@ -116,8 +117,9 @@ class _PaymentSectionState extends State<PaymentSection> {
                     child: BillFileButton(
                       kind: BillFileKind.receipt,
                       tenantName: widget.tenantName,
+                      billId: bill.id,
                       fileUrl: bill.receiptUrl,
-                      fetchSignedFile: widget.authApi.signedReceiptUrl,
+                      fetchSignedFile: widget.authApi.signedBillFileUrl,
                     ),
                   ),
               ],

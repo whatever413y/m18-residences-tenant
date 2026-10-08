@@ -19,10 +19,15 @@ class LoginPage extends StatefulWidget {
 class LoginPageState extends State<LoginPage> {
   final _controller = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _turnstile = TurnstileController();
   String? _accountIdError;
 
+  /// Continue was asked for before the verification finished: continue as soon as it does.
+  bool _submitWhenVerified = false;
+
   /// Whether a successful login keeps the account ID in this browser ("Remember me").
-  bool _remember = true;
+  /// Off unless the tenant ticks it (the account ID is their only credential), or ticked it before.
+  bool _remember = false;
 
   /// The account ID of the login in progress.
   String? _submittedId;
@@ -30,6 +35,7 @@ class LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
+    _turnstile.addListener(_onVerified);
 
     // A link's account ID wins over the remembered one.
     final accountId = accountIdFromUrl(LoginPage.launchUrl ?? Uri.base);
@@ -40,9 +46,28 @@ class LoginPageState extends State<LoginPage> {
     }
   }
 
+  @override
+  void dispose() {
+    _turnstile
+      ..removeListener(_onVerified)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onVerified() {
+    if (_submitWhenVerified && _turnstile.token != null) {
+      setState(() => _submitWhenVerified = false);
+      _searchTenant();
+    }
+  }
+
   Future<void> _prefillRemembered() async {
     final remembered = await RememberedAccount.read();
-    if (remembered != null && mounted && _controller.text.isEmpty) _controller.text = remembered;
+    if (remembered == null || !mounted) return;
+    // Remembered before, so the tenant chose it on this device.
+    setState(() => _remember = true);
+    if (_controller.text.isEmpty) _controller.text = remembered;
   }
 
   void _searchTenant() {
@@ -50,9 +75,16 @@ class LoginPageState extends State<LoginPage> {
       _accountIdError = null;
     });
     if (_formKey.currentState?.validate() ?? false) {
+      final token = _turnstile.token;
+      if (token == null) {
+        setState(() => _submitWhenVerified = true);
+        return;
+      }
       final accountId = _controller.text.trim().toUpperCase();
       _submittedId = accountId;
-      context.read<AuthBloc>().add(LoginWithAccountId(accountId));
+      context.read<AuthBloc>().add(LoginWithAccountId(accountId, turnstileToken: token));
+      // Tokens are single use: the next attempt needs a new one.
+      _turnstile.reset();
     }
   }
 
@@ -137,6 +169,8 @@ class LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 4),
                   _buildRememberMe(),
                   const SizedBox(height: 12),
+                  TurnstileField(controller: _turnstile, action: 'tenant-login'),
+                  const SizedBox(height: 16),
                   _buildSearchButton(),
                 ],
               ),
@@ -154,7 +188,7 @@ class LoginPageState extends State<LoginPage> {
       controller: _controller,
       labelText: 'Account ID',
       prefixIcon: const Icon(Icons.person_outline),
-      errorMaxLines: 1,
+      errorMaxLines: 2,
       semanticsId: 'tenant-account-id',
       autofocus: true,
       onFieldSubmitted: (_) => _searchTenant(),
@@ -175,6 +209,7 @@ class LoginPageState extends State<LoginPage> {
         value: _remember,
         onChanged: (value) => setState(() => _remember = value ?? false),
         title: const Text('Remember me on this device'),
+        subtitle: const Text('Only on your own phone: anyone using this browser can then log in as you.'),
         controlAffinity: ListTileControlAffinity.leading,
         contentPadding: EdgeInsets.zero,
         dense: true,
@@ -186,7 +221,8 @@ class LoginPageState extends State<LoginPage> {
     return Semantics(
       container: true,
       identifier: 'tenant-login-submit',
-      child: FilledButton(onPressed: _searchTenant, child: const Text('Continue')),
+      // Pressed before the verification above has finished, it continues once it has.
+      child: FilledButton(onPressed: _searchTenant, child: Text(_submitWhenVerified ? 'Verifying…' : 'Continue')),
     );
   }
 }
