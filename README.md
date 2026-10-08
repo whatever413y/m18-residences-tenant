@@ -31,7 +31,9 @@ Every text can be selected and copied.
 1. **API URL:** copy `.env.example` to `.env` (repo root). `API_URL` (including `/api`) is compiled in with
    `--dart-define-from-file=.env`; without it the app stops at startup with a clear `API_URL is not set` error.
    Locally the API runs on `http://localhost:50000/api` (see `m18-residences-server`), which only allows this app
-   on port 50002.
+   on port 50002. `TURNSTILE_SITE_KEY` (also in `.env`) is the login page's Cloudflare Turnstile widget; locally
+   Cloudflare's always-pass test key `1x00000000000000000000AA` (the local API has the matching test secret).
+   Missing, the app stops at startup with a clear error.
 2. **Shared package:** models, the API client and common widgets come from `m18_residences_shared`
    ([shared-packages](https://github.com/whatever413y/shared-packages), pinned by tag in `pubspec.yaml`). To work
    against a local checkout next to this repo, add a gitignored `pubspec_overrides.yaml`:
@@ -62,7 +64,7 @@ Every text can be selected and copied.
   - pushes to `development` → https://development-my.m18-residences.workers.dev
   - pull requests from this repo → `https://pr-<number>-my.m18-residences.workers.dev`, linked in a PR comment
 - `deploy.yml`: pushes to `main` → the same checks → the browser e2e suite (`shared-e2e`) with this commit and
-  the server and admin app as they are live → build with the repo variable `API_URL` → `wrangler deploy` → moves
+  the server and admin app as they are live → build with the repo variables `API_URL` and `TURNSTILE_SITE_KEY` → `wrangler deploy` → moves
   the `live` tag.
 
 Browser e2e builds use `--dart-define=E2E=true`, which keeps Flutter's accessibility tree on; tests find widgets by

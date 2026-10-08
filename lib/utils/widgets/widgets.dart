@@ -181,14 +181,16 @@ Future<void> showBillDetails(BuildContext context, {required Bill bill, required
                 BillFileButton(
                   kind: BillFileKind.payment,
                   tenantName: tenantName,
+                  billId: bill.id,
                   fileUrl: bill.paymentUrl,
-                  fetchSignedFile: authApi.signedTenantPaymentUrl,
+                  fetchSignedFile: authApi.signedBillFileUrl,
                 ),
                 BillFileButton(
                   kind: BillFileKind.receipt,
                   tenantName: tenantName,
+                  billId: bill.id,
                   fileUrl: bill.receiptUrl,
-                  fetchSignedFile: authApi.signedReceiptUrl,
+                  fetchSignedFile: authApi.signedBillFileUrl,
                 ),
               ],
             ),

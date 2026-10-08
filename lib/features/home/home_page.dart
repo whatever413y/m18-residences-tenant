@@ -168,8 +168,9 @@ class _NextStep extends StatelessWidget {
           BillFileButton(
             kind: BillFileKind.payment,
             tenantName: shell.tenant.name,
+            billId: bill.id,
             fileUrl: bill.paymentUrl,
-            fetchSignedFile: shell.authApi.signedTenantPaymentUrl,
+            fetchSignedFile: shell.authApi.signedBillFileUrl,
           ),
           TextButton(onPressed: shell.openStatement, child: const Text('Change payment')),
         ],
@@ -182,8 +183,9 @@ class _NextStep extends StatelessWidget {
           BillFileButton(
             kind: BillFileKind.receipt,
             tenantName: shell.tenant.name,
+            billId: bill.id,
             fileUrl: bill.receiptUrl,
-            fetchSignedFile: shell.authApi.signedReceiptUrl,
+            fetchSignedFile: shell.authApi.signedBillFileUrl,
           ),
         ],
       ),
