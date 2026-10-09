@@ -209,7 +209,6 @@ class LoginPageState extends State<LoginPage> {
         value: _remember,
         onChanged: (value) => setState(() => _remember = value ?? false),
         title: const Text('Remember me on this device'),
-        subtitle: const Text('Only on your own phone: anyone using this browser can then log in as you.'),
         controlAffinity: ListTileControlAffinity.leading,
         contentPadding: EdgeInsets.zero,
         dense: true,
