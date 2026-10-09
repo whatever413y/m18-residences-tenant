@@ -5,8 +5,9 @@ The tenant page of M18 Residences (https://my.m18-residences.workers.dev): a ten
 how to pay. Flutter web, hosted as a static-assets Cloudflare Worker (`my`).
 
 A tenant's link is `https://my.m18-residences.workers.dev/NAME`: it prefills the account ID (uppercased on
-submit). Old links of the form `…/#/NAME` still work. "Remember me" (on by default) keeps the account ID in the
-browser's storage to prefill the next visit; a link's name wins over it. Enter submits.
+submit). Old links of the form `…/#/NAME` still work. "Remember me on this device" (off by default; ticked when
+an ID was remembered before) keeps the account ID in the browser's storage to prefill the next visit; a link's name
+wins over it. Enter submits.
 
 The latest bill shows its status: **Unpaid**, **For verification** (the tenant uploaded a payment image) or **Paid**
 (the owner attached a receipt). Until it is paid, the tenant can upload a screenshot or photo of their payment
