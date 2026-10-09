@@ -183,21 +183,40 @@ class LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Clears the field and removes the remembered account ID from this browser.
+  Future<void> _forgetAccount() async {
+    _controller.clear();
+    setState(() {
+      _remember = false;
+      _accountIdError = null;
+    });
+    await RememberedAccount.forget();
+  }
+
   Widget _buildAccountIDInput() {
-    return CustomTextFormField(
-      controller: _controller,
-      labelText: 'Account ID',
-      prefixIcon: const Icon(Icons.person_outline),
-      errorMaxLines: 2,
-      semanticsId: 'tenant-account-id',
-      autofocus: true,
-      onFieldSubmitted: (_) => _searchTenant(),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Please enter your Account ID';
-        }
-        return _accountIdError;
-      },
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) => CustomTextFormField(
+        controller: _controller,
+        labelText: 'Account ID',
+        prefixIcon: const Icon(Icons.person_outline),
+        suffixIcon: _controller.text.isEmpty
+            ? null
+            : Semantics(
+                identifier: 'tenant-forget-account',
+                child: IconButton(icon: const Icon(Icons.close), tooltip: 'Clear and forget this ID', onPressed: _forgetAccount),
+              ),
+        errorMaxLines: 2,
+        semanticsId: 'tenant-account-id',
+        autofocus: true,
+        onFieldSubmitted: (_) => _searchTenant(),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Please enter your Account ID';
+          }
+          return _accountIdError;
+        },
+      ),
     );
   }
 
