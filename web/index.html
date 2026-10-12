@@ -40,6 +40,12 @@
   </style>
 </head>
 <body>
+  <script>
+    // Flutter keeps its text inputs in a hidden <form>. Enter pressed just as a field gets focus (before Flutter
+    // handles the key) made the browser submit that form natively and reload the page to "/?". The app never
+    // needs a native form submit; Flutter still sees the key and runs its own submit (e.g. log in).
+    document.addEventListener('submit', (event) => event.preventDefault(), true);
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
