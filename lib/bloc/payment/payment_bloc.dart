@@ -14,7 +14,7 @@ class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
       try {
         emit(PaymentMethodsLoaded(await paymentApi.list()));
       } catch (e) {
-        emit(PaymentMethodsError('Could not load the payment methods: ${e is ApiException ? e.message : e}'));
+        emit(PaymentMethodsError(describeError('Could not load the payment methods', e)));
       }
     });
   }

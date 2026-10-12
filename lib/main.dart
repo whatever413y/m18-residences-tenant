@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:m18_residences/bloc/auth/auth_bloc.dart';
 import 'package:m18_residences/bloc/auth/auth_event.dart';
+import 'package:m18_residences/bloc/auth/auth_state.dart';
 import 'package:m18_residences/bloc/billing/billing_bloc.dart';
 import 'package:m18_residences/bloc/payment/payment_bloc.dart';
 import 'package:m18_residences_shared/m18_residences_shared.dart';
@@ -34,6 +35,8 @@ Future<void> main() async {
   if (const bool.fromEnvironment('E2E')) SemanticsBinding.instance.ensureSemantics();
 }
 
+final _navigator = GlobalKey<NavigatorState>();
+
 class MyApp extends StatelessWidget {
   final AuthApi authApi;
   final BillApi billApi;
@@ -62,14 +65,23 @@ class MyApp extends StatelessWidget {
         },
         child: ThemeModeScope(
           controller: themeMode,
-          child: Builder(
-            builder: (context) => MaterialApp(
-              debugShowCheckedModeBanner: false,
-              title: 'M18 Residences',
-              theme: AppTheme.light,
-              darkTheme: AppTheme.dark,
-              themeMode: ThemeModeScope.of(context).value,
-              home: LoginPage(),
+          // A login that expires while the app is in use (any 401) goes back to the login page with a notice.
+          child: BlocListener<AuthBloc, AuthState>(
+            listenWhen: (_, state) => state is Unauthenticated && state.sessionExpired,
+            listener: (_, state) => _navigator.currentState?.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => LoginPage(notice: (state as Unauthenticated).message)),
+              (route) => false,
+            ),
+            child: Builder(
+              builder: (context) => MaterialApp(
+                navigatorKey: _navigator,
+                debugShowCheckedModeBanner: false,
+                title: 'M18 Residences',
+                theme: AppTheme.light,
+                darkTheme: AppTheme.dark,
+                themeMode: ThemeModeScope.of(context).value,
+                home: LoginPage(),
+              ),
             ),
           ),
         ),

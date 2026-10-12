@@ -23,10 +23,13 @@ class Authenticated extends AuthState {
 class Unauthenticated extends AuthState {
   final String message;
 
-  Unauthenticated(this.message);
+  /// The login expired while the app was in use (a 401): the app goes back to the login page and shows [message].
+  final bool sessionExpired;
+
+  Unauthenticated(this.message, {this.sessionExpired = false});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, sessionExpired];
 }
 
 class AuthError extends AuthState {

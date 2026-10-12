@@ -9,6 +9,11 @@ import 'package:m18_residences_shared/m18_residences_shared.dart';
 import '../shell/tenant_shell.dart';
 
 class LoginPage extends StatefulWidget {
+  /// Shown above the form, e.g. why the app came back here ("Your session has ended…").
+  final String? notice;
+
+  const LoginPage({super.key, this.notice});
+
   /// The URL the app was opened with (set in `main` before the router can rewrite it).
   static Uri? launchUrl;
 
@@ -164,6 +169,7 @@ class LoginPageState extends State<LoginPage> {
                   Text('Log in', style: theme.textTheme.titleLarge),
                   const SizedBox(height: 4),
                   Text('Enter your account ID to continue.', style: theme.textTheme.bodySmall),
+                  if (widget.notice case final notice?) ...[const SizedBox(height: 16), InfoBanner(notice, semanticsId: 'login-notice')],
                   const SizedBox(height: 20),
                   _buildAccountIDInput(),
                   const SizedBox(height: 4),

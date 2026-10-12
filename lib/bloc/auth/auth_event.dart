@@ -20,3 +20,6 @@ class LoginWithAccountId extends AuthEvent {
 }
 
 class LogoutRequested extends AuthEvent {}
+
+/// A call answered 401 (`ApiClient.onSessionExpired`): the login expired while the app was in use.
+class SessionExpired extends AuthEvent {}

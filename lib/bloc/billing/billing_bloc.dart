@@ -18,7 +18,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     try {
       bills = await billApi.listForTenant(event.tenantId);
     } catch (e) {
-      return emit(BillingError(_failureMessage('Failed to load bills', e)));
+      return emit(BillingError(describeError('Failed to load bills', e)));
     }
 
     emit(BillingLoaded(bills));
@@ -36,15 +36,8 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     } catch (e) {
       final message = e is ApiException && e.statusCode == 409
           ? 'This bill is already paid. Refresh to see the receipt.'
-          : _failureMessage('The payment upload failed', e);
+          : describeError('The payment upload failed', e);
       emit(BillingLoaded(bills, uploadError: message));
     }
-  }
-
-  /// Load failures are shown to the user: the HTTP status and server message for API errors, the error itself otherwise (e.g. network).
-  static String _failureMessage(String action, Object error) {
-    if (error is! ApiException) return '$action: $error';
-    final reason = error.message.trim();
-    return reason.isEmpty ? '$action (HTTP ${error.statusCode})' : '$action (HTTP ${error.statusCode}): $reason';
   }
 }
