@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:m18_residences_shared/m18_residences_shared.dart';
 
@@ -36,13 +34,7 @@ class _PaymentSectionState extends State<PaymentSection> {
   String? _error;
 
   Future<void> _pick() async {
-    final ({String name, Uint8List bytes})? file;
-    try {
-      file = await pickFile(receiptExtensions);
-    } catch (e) {
-      setState(() => _error = describeError('Could not open the file picker', e));
-      return;
-    }
+    final file = await pickOrPasteFile(context, receiptExtensions, title: 'Upload payment');
     if (file == null || !mounted) return;
 
     setState(() {
