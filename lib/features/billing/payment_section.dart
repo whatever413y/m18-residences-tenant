@@ -34,15 +34,15 @@ class _PaymentSectionState extends State<PaymentSection> {
   String? _error;
 
   Future<void> _pick() async {
-    final file = await pickOrPasteFile(context, receiptExtensions, title: 'Upload payment');
-    if (file == null || !mounted) return;
+    final files = await pickOrPasteFiles(context, receiptExtensions, title: 'Upload payment');
+    if (files == null || !mounted) return;
 
     setState(() {
       _preparing = true;
       _error = null;
     });
     try {
-      final prepared = await prepareReceipt(file.name, file.bytes);
+      final prepared = await prepareReceipts(files);
       if (mounted) widget.onUpload(prepared);
     } catch (e) {
       if (mounted) setState(() => _error = e is ReceiptException ? e.message : describeError('Could not read the file', e));
@@ -61,7 +61,7 @@ class _PaymentSectionState extends State<PaymentSection> {
 
     final status = bill.status;
     final hint = switch (status) {
-      BillStatus.unpaid => 'Paid already? Upload a screenshot or photo of your payment so the owner can confirm it.',
+      BillStatus.unpaid => 'Paid already? Upload screenshots or photos of your payment (up to $maxCombinedPictures) so the owner can confirm it.',
       BillStatus.forVerification => 'Your proof of payment is waiting for the owner. You can still change it.',
       BillStatus.paid => 'This bill is paid. Thank you!',
     };
